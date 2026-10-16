@@ -18,6 +18,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 CLASS_NAMES = ("cardboard", "soft plastic", "rigid plastic", "metal")
 SPLITS = {"train": "train", "val": "valid", "test": "test"}  # source name -> Roboflow/Ultralytics name
@@ -38,10 +39,32 @@ class CocoImage:
 
 @dataclass(frozen=True)
 class Polygon:
-    """One outline of an object, in source pixels: x0, y0, x1, y1, ..."""
+    """One object's outline in source pixels: one or more pieces, each x0, y0, x1, y1, ...
+
+    An object partly covered by another one can come in several pieces (about 0.6% in ZeroWaste).
+    """
 
     class_index: int
-    points: tuple[float, ...]
+    pieces: tuple[tuple[float, ...], ...]
+
+    @property
+    def largest_piece(self) -> tuple[float, ...]:
+        """The piece with the largest area (YOLO labels hold one outline per object)."""
+        return max(self.pieces, key=lambda piece: abs(_shoelace_area(points=piece)))
+
+
+def _shoelace_area(*, points: Sequence[float] | npt.NDArray[np.float64]) -> float:
+    """Signed area of a polygon given as x0, y0, x1, y1, ...
+
+    Args:
+        points: the flat coordinate list.
+
+    Returns:
+        The signed area (sign depends on the point order).
+    """
+    xy = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+    x, y = xy[:, 0], xy[:, 1]
+    return float(0.5 * (np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1))))
 
 
 @dataclass(frozen=True)
@@ -99,11 +122,9 @@ def read_coco(*, labels_path: Path) -> tuple[list[CocoImage], dict[int, list[Pol
         segmentation = ann["segmentation"]
         if not isinstance(segmentation, list):
             raise ValueError(f"annotation {ann['id']} uses RLE; only polygons are supported")
-        for outline in segmentation:
-            if len(outline) >= 2 * MIN_POLYGON_POINTS:
-                polygons[int(ann["image_id"])].append(
-                    Polygon(class_index=class_index[int(ann["category_id"])], points=tuple(float(v) for v in outline))
-                )
+        pieces = tuple(tuple(float(v) for v in piece) for piece in segmentation if len(piece) >= 2 * MIN_POLYGON_POINTS)
+        if pieces:
+            polygons[int(ann["image_id"])].append(Polygon(class_index=class_index[int(ann["category_id"])], pieces=pieces))
     return images, polygons
 
 
@@ -119,7 +140,7 @@ def yolo_label_lines(*, polygons: Sequence[Polygon], width_px: int, height_px: i
         A generator of label lines.
     """
     for polygon in polygons:
-        xy = np.asarray(polygon.points, dtype=np.float64).reshape(-1, 2)
+        xy = np.asarray(polygon.largest_piece, dtype=np.float64).reshape(-1, 2)
         xy = np.clip(xy / (width_px, height_px), 0.0, 1.0)
         yield f"{polygon.class_index} " + " ".join(f"{v:.6f}" for v in xy.ravel())
     return None
@@ -184,16 +205,17 @@ def _scaled_annotation(*, polygon: Polygon, image_id: int, scale: float, annotat
     Returns:
         The COCO annotation dict (category ids start at 1).
     """
-    xy = np.asarray(polygon.points, dtype=np.float64).reshape(-1, 2) * scale
-    x_min, y_min = xy.min(axis=0)
-    x_max, y_max = xy.max(axis=0)
+    pieces = [np.asarray(piece, dtype=np.float64).reshape(-1, 2) * scale for piece in polygon.pieces]
+    every_point = np.concatenate(pieces)
+    x_min, y_min = every_point.min(axis=0)
+    x_max, y_max = every_point.max(axis=0)
     return {
         "id": annotation_id,
         "image_id": image_id,
         "category_id": polygon.class_index + 1,
-        "segmentation": [[round(float(v), 2) for v in xy.ravel()]],
+        "segmentation": [[round(float(v), 2) for v in piece.ravel()] for piece in pieces],
         "bbox": [round(float(v), 2) for v in (x_min, y_min, x_max - x_min, y_max - y_min)],
-        "area": round(float(cv2.contourArea(xy.astype(np.float32))), 2),
+        "area": round(sum(abs(_shoelace_area(points=piece.ravel())) for piece in pieces), 2),
         "iscrowd": 0,
     }
 

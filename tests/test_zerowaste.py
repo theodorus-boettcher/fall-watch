@@ -27,7 +27,8 @@ def make_split(*, root: Path) -> Path:
         "categories": [{"id": 3, "name": "metal"}, {"id": 9, "name": "soft_plastic"}],
         "annotations": [
             {"id": 1, "image_id": 7, "category_id": 3, "segmentation": [[0, 0, 20, 0, 20, 10, 0, 10]]},
-            {"id": 2, "image_id": 7, "category_id": 9, "segmentation": [[20, 10, 40, 10, 40, 20]]},
+            {"id": 2, "image_id": 7, "category_id": 9,
+             "segmentation": [[30, 15, 32, 15, 32, 17], [20, 10, 40, 10, 40, 20]]},  # two pieces, 2nd larger
         ],
     }
     (split / "labels.json").write_text(json.dumps(coco), encoding="utf-8")
@@ -49,12 +50,13 @@ def test_convert_split_writes_both_formats(tmp_path: Path) -> None:
     assert image is not None and image.shape[:2] == (10, 20)
     lines = (tmp_path / "out" / "labels" / "frame_1.txt").read_text(encoding="utf-8").splitlines()
     assert lines[0].split()[:3] == ["3", "0.000000", "0.000000"]
-    assert lines[1].split()[0] == "1"
+    assert lines[1].split()[:3] == ["1", "0.500000", "0.500000"]  # the larger piece
     coco = json.loads((tmp_path / "out" / "_annotations.coco.json").read_text(encoding="utf-8"))
     assert coco["images"][0]["width"] == 20
     assert coco["annotations"][0]["segmentation"][0][:4] == [0.0, 0.0, 10.0, 0.0]  # scaled by 0.5
     assert coco["annotations"][0]["bbox"] == [0.0, 0.0, 10.0, 5.0]
     assert [c["name"] for c in coco["categories"]] == list(zerowaste.CLASS_NAMES)
+    assert len(coco["annotations"][1]["segmentation"]) == 2  # COCO keeps both pieces
 
 
 def test_rle_annotations_are_refused(tmp_path: Path) -> None:

@@ -21,3 +21,4 @@ android/app/src/main/assets/models/
 runs/
 models/
 *.onnx
+*.log
