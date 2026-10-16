@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Machine-specific paths (NDK, ncnn build) live in the git-ignored local.properties.
+def localProps = new Properties()
+file('../local.properties').withInputStream { localProps.load(it) }
+
+android {
+    namespace 'com.doorcounter.app'
+    compileSdk 34
+    ndkPath localProps.getProperty('ndk.path')
+    ndkVersion '27.2.12479018'  // r27c, the NDK ncnn was built with
+
+    defaultConfig {
+        applicationId 'com.doorcounter.app'
+        // Galaxy S5 on stock Android 6.0.1
+        minSdk 23
+        targetSdk 23
+        versionCode 1
+        versionName '0.1'
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-Dncnn_DIR=${localProps.getProperty('ncnn.dir')}", '-DANDROID_STL=c++_static'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path 'src/main/cpp/CMakeLists.txt'
+            version '3.22.1'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Door counter live</title>
+<style>
+  :root {
+    --bg: #f4f4f1; --panel: #ffffff; --text: #1c1c1a; --muted: #6b6b66; --line: #deded8;
+    --box: #00a86b; --warn: #c2410c; --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141413; --panel: #1f1f1d; --text: #ececea; --muted: #9b9b95; --line: #33332f;
+            --box: #34d399; --warn: #fb923c; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px;
+         grid-template-columns: minmax(0, 1fr) 280px; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 6px; background: #000; }
+  .big { font-size: 44px; font-weight: 700; line-height: 1; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 12px 0 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel">
+    <h1>Phone camera, boxes found on the phone</h1>
+    <canvas id="view" width="640" height="480"></canvas>
+    <div class="status" id="status">waiting for the phone...</div>
+  </section>
+  <aside class="panel">
+    <div style="color: var(--muted)">people in view now</div>
+    <div class="big" id="persons">-</div>
+    <dl>
+      <dt>frames per second</dt><dd id="fps">-</dd>
+      <dt>model time per frame</dt><dd id="inference">-</dd>
+      <dt>CPU temperature</dt><dd id="cpu">-</dd>
+      <dt>battery</dt><dd id="battery">-</dd>
+      <dt>queued on phone</dt><dd id="queued">-</dd>
+      <dt>dropped</dt><dd id="dropped">-</dd>
+      <dt>frame</dt><dd id="frame">-</dd>
+    </dl>
+  </aside>
+</main>
+<script>
+  const POLL_MS = 150;
+  const STALE_S = 3;
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const boxColor = getComputedStyle(document.documentElement).getPropertyValue("--box").trim();
+  let shownPreviewId = null;
+  let loading = false;
+
+  function setText(id, text, cls) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = cls || "";
+  }
+
+  // Draw the picture rotated upright (clockwise), then the boxes, which are 0..1 of the upright frame.
+  function draw(img, rotationDeg, boxes) {
+    const swapped = rotationDeg === 90 || rotationDeg === 270;
+    canvas.width = swapped ? img.height : img.width;
+    canvas.height = swapped ? img.width : img.height;
+    const w = canvas.width, h = canvas.height;
+    ctx.save();
+    if (rotationDeg === 90) { ctx.translate(w, 0); }
+    else if (rotationDeg === 180) { ctx.translate(w, h); }
+    else if (rotationDeg === 270) { ctx.translate(0, h); }
+    ctx.rotate(rotationDeg * Math.PI / 180);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+    ctx.lineWidth = 3;
+    ctx.font = "bold 16px system-ui, sans-serif";
+    for (const b of boxes) {
+      const x = b.x1 * w, y = b.y1 * h, bw = (b.x2 - b.x1) * w, bh = (b.y2 - b.y1) * h;
+      ctx.strokeStyle = boxColor;
+      ctx.strokeRect(x, y, bw, bh);
+      const label = "person " + b.score.toFixed(2);
+      const tw = ctx.measureText(label).width + 8;
+      ctx.fillStyle = boxColor;
+      ctx.fillRect(x, Math.max(0, y - 22), tw, 22);
+      ctx.fillStyle = "#000";
+      ctx.fillText(label, x + 4, Math.max(16, y - 6));
+    }
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch("/api/latest", { cache: "no-store" });
+      const s = await res.json();
+      const age = s.seconds_since_last_batch;
+      if (age === null) {
+        setText("status", "waiting for the phone...");
+      } else if (age > STALE_S) {
+        setText("status", "no data from the phone for " + age.toFixed(0) + " s", "bad");
+      } else {
+        setText("status", s.preview ? "live" : "live, but previews are off (only boxes arrive)",
+                s.preview ? "" : "warn");
+      }
+      if (s.latest_frame) {
+        setText("persons", String(s.latest_frame.boxes.length));
+        setText("frame", "#" + s.latest_frame.frame_id);
+      }
+      if (s.health) {
+        const hl = s.health;
+        setText("fps", hl.fps.toFixed(1));
+        setText("inference", (hl.mean_inference_s * 1000).toFixed(0) + " ms");
+        if (hl.cpu_temp_c !== null) {
+          setText("cpu", hl.cpu_temp_c.toFixed(0) + " °C", hl.cpu_temp_c >= 80 ? "bad" : hl.cpu_temp_c >= 70 ? "warn" : "");
+        }
+        setText("battery", hl.battery_level_pct + "%, " + hl.battery_temp_c.toFixed(1) + " °C" +
+                (hl.is_charging ? ", charging" : ""), hl.battery_temp_c >= 45 ? "bad" : "");
+      }
+      setText("queued", String(s.queued_frames), s.queued_frames > 50 ? "warn" : "");
+      setText("dropped", String(s.dropped_frames), s.dropped_frames > 0 ? "bad" : "");
+      if (s.preview && s.preview.frame_id !== shownPreviewId && !loading) {
+        loading = true;
+        const img = new Image();
+        img.onload = () => { draw(img, s.preview.rotation_deg, s.preview_boxes); shownPreviewId = s.preview.frame_id; loading = false; };
+        img.onerror = () => { loading = false; };
+        img.src = "/preview.jpg?f=" + s.preview.frame_id;
+      }
+    } catch (e) {
+      setText("status", "gateway not reachable", "bad");
+    }
+    setTimeout(poll, POLL_MS);
+  }
+  poll();
+</script>
+</body>
+</html>

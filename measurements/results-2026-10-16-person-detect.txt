@@ -1,0 +1,12 @@
+Galaxy S5 SM-G900F (klte), stock Android 6.0.1, debloated (117 apps hidden), our app stopped
+ncnn c15904b, NDK r27c, armeabi-v7a, CPU only
+benchncnn 10 loops, 4 threads, powersave 0, cooling_down 1; random weights (timing only)
+benchncnn options: fp16 storage on (weights kept as FP16, math in FP32 on armv7), winograd + sgemm on
+Models: pretrained COCO YOLO26 detect (80 classes, includes person), exported with ultralytics 8.4.177
+Phone on USB at 94%; battery temp 25.6 C before, 25.8 C after
+
+model            input   min ms   max ms   avg ms   ~FPS
+yolo26n detect   320      93.32    95.86    94.05   10.6
+yolo26n detect   416     159.38   161.44   160.10    6.2
+yolo26n detect   640     380.47   418.27   385.81    2.6
+yolo26s detect   320     306.46   346.00   311.49    3.2

@@ -1,0 +1,36 @@
+label: debloated
+phone date: Fri Oct 16 02:53:52 CEST 2026
+enabled packages: 192
+--- sample 1, uptime 344.99 255.13 s
+MemTotal:        1746884 kB
+MemFree:           49792 kB
+Buffers:           10784 kB
+Cached:           797748 kB
+SwapTotal:        917500 kB
+SwapFree:         903796 kB
+Total RAM: 1746884 kB (status normal)
+ Free RAM: 791093 kB (187469 cached pss + 555648 cached kernel + 47976 free)
+ Used RAM: 740769 kB (629029 used pss + 111740 kernel)
+ Lost RAM: 215022 kB
+--- sample 2, uptime 410.60 290.11 s
+MemTotal:        1746884 kB
+MemFree:           44512 kB
+Buffers:           11044 kB
+Cached:           797844 kB
+SwapTotal:        917500 kB
+SwapFree:         903796 kB
+Total RAM: 1746884 kB (status normal)
+ Free RAM: 796158 kB (187758 cached pss + 555964 cached kernel + 52436 free)
+ Used RAM: 736540 kB (624832 used pss + 111708 kernel)
+ Lost RAM: 214186 kB
+--- sample 3, uptime 476.16 325.94 s
+MemTotal:        1746884 kB
+MemFree:           47692 kB
+Buffers:           11124 kB
+Cached:           797920 kB
+SwapTotal:        917500 kB
+SwapFree:         903796 kB
+Total RAM: 1746884 kB (status normal)
+ Free RAM: 789762 kB (187830 cached pss + 556112 cached kernel + 45820 free)
+ Used RAM: 743280 kB (631316 used pss + 111964 kernel)
+ Lost RAM: 213842 kB

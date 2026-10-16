@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+
+# photos, recordings and trained weights stay out of git
+data/
+*.pt
+
+# android build output
+android/.gradle/
+android/**/build/
+android/local.properties
+android/app/.cxx/
+
+# model weights bundled into the APK (AGPL-3.0 Ultralytics exports, rebuilt from the export step)
+android/app/src/main/assets/models/
+.env

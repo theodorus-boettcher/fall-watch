@@ -1,0 +1,14 @@
+Galaxy S5 SM-G900F (klte), stock Android 6.0.1 (G900FXXU1CQDA), armeabi-v7a NEON vfpv4, 4 cores
+ncnn c15904b (2026-10-15), NDK r27c, armeabi-v7a, android-23, CPU only, benchncnn defaults (fp16 storage on: weights kept as FP16, math in FP32 on armv7; corrected 2026-10-16)
+benchncnn 10 loops, 4 threads, powersave 0, cooling_down 1; random weights (timing only)
+Phone charging at 51%; battery temp 26.3 C before, 27.2 C after
+RAM before debloat: MemTotal 1746884 kB, MemFree 79064 kB, Buffers 63344 kB, Cached 517956 kB, Swap 917500 kB
+
+model                 input     min ms   max ms   avg ms   ~FPS
+yolo-fastestv2        352       22.43    23.96    22.79    44
+nanodet_m             320       51.40    52.93    51.67    19
+yolov4-tiny           416      208.86   241.46   213.03    4.7
+yolo26n-pose          320      133.29   172.88   150.46    6.6
+yolo26n-pose          416      170.61   171.49   171.13    5.8
+yolo11n-pose          640      407.54   535.16   439.41    2.3
+(also: mobilenet_v2 224, 1 thread, 1 loop: 86.73 ms)
