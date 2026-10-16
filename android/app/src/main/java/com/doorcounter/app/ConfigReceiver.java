@@ -11,7 +11,8 @@ import android.util.Log;
  * <p>Guarded by {@code android.permission.DUMP} like {@link ProvisionReceiver}: only the adb shell
  * can reach it. Example: {@code adb shell am broadcast -n com.doorcounter.app/.ConfigReceiver
  * --ei rotation 180 --ez preview true}. Extras left out keep their current value. Extras:
- * {@code rotation} (int), {@code gateway} (string), {@code preview} (boolean), {@code threads} (int).
+ * {@code rotation} (int), {@code gateway} (string), {@code preview} (boolean), {@code threads} (int),
+ * {@code motion_gate} (boolean).
  */
 public final class ConfigReceiver extends BroadcastReceiver {
     private static final String TAG = "DoorConfig";
@@ -24,7 +25,8 @@ public final class ConfigReceiver extends BroadcastReceiver {
                     intent.getIntExtra("rotation", current.rotationDeg),
                     intent.hasExtra("gateway") ? intent.getStringExtra("gateway") : current.gatewayUrl,
                     intent.getBooleanExtra("preview", current.isPreviewEnabled),
-                    intent.getIntExtra("threads", current.threadCount));
+                    intent.getIntExtra("threads", current.threadCount),
+                    intent.getBooleanExtra("motion_gate", current.isMotionGateEnabled));
         } catch (IllegalArgumentException e) {
             report("error: " + e.getMessage());
             return;

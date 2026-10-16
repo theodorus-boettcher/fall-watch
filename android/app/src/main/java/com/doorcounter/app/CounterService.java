@@ -39,12 +39,15 @@ public final class CounterService extends Service {
     private static final int TARGET_PREVIEW_WIDTH_PX = 640;
     private static final int CAMERA_BUFFER_COUNT = 3;
     private static final double STATS_WINDOW_S = 5.0;
+    private static final double MOTION_HOLD_S = 2.0;
+    private static final double IDLE_INTERVAL_S = 1.0;
     private static final double NANOS_PER_S = 1e9;
     private static final double MILLIS_PER_S = 1e3;
     // Any texture name works: the texture is never drawn, it only receives the preview.
     private static final int OFFSCREEN_TEXTURE_NAME = 10;
 
     private final AtomicBoolean isDetectorBusy = new AtomicBoolean(false);
+    private final MotionGate motionGate = new MotionGate(MOTION_HOLD_S, IDLE_INTERVAL_S);
     private Settings settings;
     private PowerManager.WakeLock wakeLock;
     private GatewayClient gateway;
@@ -232,14 +235,16 @@ public final class CounterService extends Service {
     }
 
     /**
-     * A new frame from the camera (camera thread). Hand it to the detector if it is free,
-     * otherwise give the buffer straight back.
+     * A new frame from the camera (camera thread). Hand it to the detector if it is free and the
+     * motion gate lets it through, otherwise give the buffer straight back.
      *
      * @param nv21 the frame in NV21 layout, one of our reused buffers
      * @param source the camera that produced it
      */
     private void onPreviewFrame(byte[] nv21, Camera source) {
-        if (detector == null || !isDetectorBusy.compareAndSet(false, true)) {
+        boolean isWanted = !settings.isMotionGateEnabled
+                || motionGate.shouldRun(nv21, frameWidthPx, frameHeightPx, SystemClock.elapsedRealtime());
+        if (!isWanted || detector == null || !isDetectorBusy.compareAndSet(false, true)) {
             source.addCallbackBuffer(nv21);
             return;
         }

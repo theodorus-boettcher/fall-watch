@@ -15,6 +15,9 @@ door-gateway = "door_counter.gateway.server:main"
 
 [dependency-groups]
 dev = ["pytest", "mypy"]
+train = [
+    "ultralytics>=8.4.178",
+]
 
 [build-system]
 requires = ["hatchling"]
