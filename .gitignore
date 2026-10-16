@@ -16,3 +16,8 @@ android/app/.cxx/
 # model weights bundled into the APK (AGPL-3.0 Ultralytics exports, rebuilt from the export step)
 android/app/src/main/assets/models/
 .env
+
+# training runs and exported phone models (rebuilt by door_counter.train)
+runs/
+models/
+*.onnx
