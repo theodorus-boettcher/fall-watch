@@ -11,12 +11,15 @@ import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+import yaml
 from ultralytics.models import YOLO
 
 DEFAULT_BASE_MODEL = "yolo26n-seg.pt"
 DEFAULT_IMAGE_SIZE_PX = 320  # what the phone runs
 DEFAULT_EPOCHS = 80
 DEFAULT_BATCH = 32
+SPLIT_KEYS = {"val": "val", "test": "test"}  # our split name -> data.yaml key
+IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 
 
 @dataclass(frozen=True)
@@ -75,6 +78,25 @@ def train(*, config: TrainConfig) -> Path:
     return best
 
 
+def count_images(*, data_yaml: Path, split: str) -> int:
+    """Count the images of one split listed in an Ultralytics data.yaml.
+
+    Args:
+        data_yaml: the dataset file.
+        split: ``val`` or ``test``.
+
+    Returns:
+        Number of image files in the split's folder.
+
+    Raises:
+        KeyError: if the split is not in the file.
+    """
+    with data_yaml.open(encoding="utf-8") as f:
+        spec = yaml.safe_load(f)
+    folder = Path(spec["path"]) / spec[SPLIT_KEYS[split]]
+    return sum(1 for p in folder.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
+
+
 def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> Scores:
     """Score a model on one split of the dataset.
 
@@ -91,7 +113,7 @@ def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> 
                                            verbose=False)
     return Scores(
         split=split,
-        images=int(metrics.seen),
+        images=count_images(data_yaml=data_yaml, split=split),
         box_map50=float(metrics.box.map50),
         box_map50_95=float(metrics.box.map),
         mask_map50=float(metrics.seg.map50),
@@ -131,10 +153,11 @@ def main() -> None:
     parser.add_argument("--batch", type=int, default=DEFAULT_BATCH)
     parser.add_argument("--imgsz", type=int, default=DEFAULT_IMAGE_SIZE_PX)
     parser.add_argument("--base", default=DEFAULT_BASE_MODEL, help="starting weights")
+    parser.add_argument("--weights", type=Path, help="skip training: score and export these weights")
     args = parser.parse_args()
     config = TrainConfig(data_yaml=args.data, name=args.name, base_model=args.base, image_size_px=args.imgsz,
                          epochs=args.epochs, batch=args.batch)
-    best = train(config=config)
+    best = args.weights if args.weights is not None else train(config=config)
     scores = [score(weights=best, data_yaml=config.data_yaml, split=s, image_size_px=config.image_size_px)
               for s in ("val", "test")]
     out_dir = export_for_phone(weights=best, image_size_px=config.image_size_px, name=config.name,

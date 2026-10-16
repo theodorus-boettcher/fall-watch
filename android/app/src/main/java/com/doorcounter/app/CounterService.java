@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class CounterService extends Service {
     private static final String TAG = "DoorCounter";
     private static final int NOTIFICATION_ID = 1;
-    private static final String MODEL_NAME = "models/yolo26n-seg-320";
+    private static final String MODEL_NAME = "models/sort-v1";
     private static final float MIN_SCORE = 0.25f;
     private static final int TARGET_PREVIEW_WIDTH_PX = 640;
     private static final int CAMERA_BUFFER_COUNT = 3;

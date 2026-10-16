@@ -14,7 +14,11 @@ dependencies = [
 door-gateway = "door_counter.gateway.server:main"
 
 [dependency-groups]
-dev = ["pytest", "mypy"]
+dev = [
+    "pytest",
+    "mypy",
+    "types-pyyaml>=6.0.12.20260906",
+]
 train = [
     "ultralytics>=8.4.178",
 ]
