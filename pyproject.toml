@@ -3,7 +3,12 @@ name = "door-counter"
 version = "0.1.0"
 description = "Real-time people counter: a tiny detector on a 2014 Android phone, counting on a laptop gateway."
 requires-python = ">=3.12"
-dependencies = ["numpy"]
+dependencies = [
+    "ncnn>=1.0.20260526",
+    "numpy",
+    "roboflow>=1.7.1",
+    "supervision>=0.30.9",
+]
 
 [project.scripts]
 door-gateway = "door_counter.gateway.server:main"
@@ -20,3 +25,8 @@ strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+# These ship no type information.
+module = ["roboflow", "roboflow.*", "ncnn"]
+ignore_missing_imports = true

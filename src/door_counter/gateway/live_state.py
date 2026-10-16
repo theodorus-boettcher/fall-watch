@@ -4,7 +4,7 @@ import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 
-from door_counter.gateway.messages import Batch, Box, Frame, Health, Preview
+from door_counter.gateway.messages import Batch, Frame, Health, Item, Preview
 
 DEFAULT_HISTORY_FRAMES = 600
 
@@ -14,9 +14,11 @@ class LiveSnapshot:
     """Everything the live page shows, taken at one moment."""
 
     session_id: int | None
+    model: str | None
+    class_names: tuple[str, ...]
     latest_frame: Frame | None
     preview: Preview | None
-    preview_boxes: tuple[Box, ...]
+    preview_items: tuple[Item, ...]
     health: Health | None
     queued_frames: int
     dropped_frames: int
@@ -41,6 +43,8 @@ class LiveState:
         self._lock = threading.Lock()
         self._recent: OrderedDict[int, Frame] = OrderedDict()
         self._session_id: int | None = None
+        self._model: str | None = None
+        self._class_names: tuple[str, ...] = ()
         self._preview: Preview | None = None
         self._health: Health | None = None
         self._queued_frames = 0
@@ -62,6 +66,8 @@ class LiveState:
                 self._recent.clear()
                 self._preview = None
                 self._session_id = batch.session_id
+            self._model = batch.model
+            self._class_names = batch.class_names
             for frame in batch.frames:
                 self._recent[frame.frame_id] = frame
             while len(self._recent) > self._history_frames:
@@ -79,7 +85,7 @@ class LiveState:
         """Copy out the current state.
 
         Returns:
-            The snapshot. ``preview_boxes`` are the boxes of the preview's own frame, so they line
+            The snapshot. ``preview_items`` are the items of the preview's own frame, so they line
             up with the picture even when newer frames have arrived.
         """
         with self._lock:
@@ -87,9 +93,11 @@ class LiveState:
             preview_frame = None if self._preview is None else self._recent.get(self._preview.frame_id)
             return LiveSnapshot(
                 session_id=self._session_id,
+                model=self._model,
+                class_names=self._class_names,
                 latest_frame=latest,
                 preview=self._preview,
-                preview_boxes=() if preview_frame is None else preview_frame.boxes,
+                preview_items=() if preview_frame is None else preview_frame.items,
                 health=self._health,
                 queued_frames=self._queued_frames,
                 dropped_frames=self._dropped_frames,

@@ -24,8 +24,8 @@ import java.util.List;
 /**
  * Sends detector results to the laptop gateway on its own thread.
  *
- * <p>Every frame's boxes are queued and sent in order, in batches, so the gateway can track
- * people even after a network gap. While the gateway is unreachable the queue keeps growing up to
+ * <p>Every frame's items (class, score, box, mask) are queued and sent in order, in batches, so
+ * the gateway can track items even after a network gap. While the gateway is unreachable the queue keeps growing up to
  * a limit, then the oldest frames are dropped (and counted). Preview pictures are different: only
  * the newest one is kept, and it is sent only when previews are switched on.
  */
@@ -58,6 +58,8 @@ final class GatewayClient {
     private final ArrayDeque<FrameResult> queue = new ArrayDeque<>();
     private final URL framesUrl;
     private final long sessionId;
+    private final String modelName;
+    private final List<String> classNames;
     private final Thread thread;
     private Preview pendingPreview;
     private Health latestHealth;
@@ -70,11 +72,16 @@ final class GatewayClient {
      *
      * @param gatewayUrl base URL of the gateway, e.g. {@code http://127.0.0.1:8000}
      * @param sessionId identifies this service run, so the gateway can tell restarts apart
+     * @param modelName the model in use, sent with every batch
+     * @param classNames the model's class names, index = class id
      * @throws MalformedURLException if the URL is not valid
      */
-    GatewayClient(String gatewayUrl, long sessionId) throws MalformedURLException {
+    GatewayClient(String gatewayUrl, long sessionId, String modelName, List<String> classNames)
+            throws MalformedURLException {
         this.framesUrl = new URL(gatewayUrl + "/frames");
         this.sessionId = sessionId;
+        this.modelName = modelName;
+        this.classNames = classNames;
         this.thread = new Thread(this::run, "gateway");
         thread.start();
     }
@@ -214,13 +221,9 @@ final class GatewayClient {
             throws JSONException {
         JSONArray frames = new JSONArray();
         for (FrameResult result : batch) {
-            JSONArray boxes = new JSONArray();
-            for (int i = 0; i < result.boxes.length; i += Detector.VALUES_PER_BOX) {
-                JSONArray box = new JSONArray();
-                for (int j = 0; j < Detector.VALUES_PER_BOX; j++) {
-                    box.put((double) result.boxes[i + j]);
-                }
-                boxes.put(box);
+            JSONArray items = new JSONArray();
+            for (int i = 0; i < result.items.length; i += Detector.VALUES_PER_ITEM) {
+                items.put(itemJson(result.items, i, result.runs));
             }
             frames.put(new JSONObject()
                     .put("frame_id", result.frameId)
@@ -228,10 +231,12 @@ final class GatewayClient {
                     .put("width_px", result.uprightWidthPx)
                     .put("height_px", result.uprightHeightPx)
                     .put("inference_s", result.inferenceS)
-                    .put("boxes", boxes));
+                    .put("items", items));
         }
         JSONObject body = new JSONObject()
                 .put("session_id", sessionId)
+                .put("model", modelName)
+                .put("class_names", new JSONArray(classNames))
                 .put("frames", frames)
                 .put("queued_frames", queued)
                 .put("dropped_frames", dropped);
@@ -245,6 +250,49 @@ final class GatewayClient {
                     .put("jpeg_b64", Base64.encodeToString(toJpeg(preview), Base64.NO_WRAP)));
         }
         return body;
+    }
+
+    /**
+     * One item as JSON: class, score, box, and its mask patch with runs.
+     *
+     * @param records the frame's item records
+     * @param start index of this item's first value
+     * @param runs the frame's mask runs
+     * @return the item
+     * @throws JSONException never in practice; org.json declares it
+     */
+    private static JSONObject itemJson(float[] records, int start, int[] runs) throws JSONException {
+        JSONArray runArray = new JSONArray();
+        int offset = (int) records[start + Detector.RUN_OFFSET];
+        int count = (int) records[start + Detector.RUN_COUNT];
+        for (int k = offset; k < offset + count; k++) {
+            runArray.put(runs[k]);
+        }
+        return new JSONObject()
+                .put("class_id", (int) records[start + Detector.CLASS_ID])
+                .put("score", (double) records[start + Detector.SCORE])
+                .put("box", rectJson(records, start + Detector.BOX))
+                .put("mask", new JSONObject()
+                        .put("rect", rectJson(records, start + Detector.MASK_RECT))
+                        .put("width_cells", (int) records[start + Detector.MASK_WIDTH])
+                        .put("height_cells", (int) records[start + Detector.MASK_HEIGHT])
+                        .put("runs", runArray));
+    }
+
+    /**
+     * Four values as a JSON array: x1, y1, x2, y2.
+     *
+     * @param values the record
+     * @param start index of x1
+     * @return the array
+     * @throws JSONException never in practice; org.json declares it
+     */
+    private static JSONArray rectJson(float[] values, int start) throws JSONException {
+        JSONArray rect = new JSONArray();
+        for (int j = 0; j < 4; j++) {
+            rect.put((double) values[start + j]);
+        }
+        return rect;
     }
 
     /**

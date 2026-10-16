@@ -41,9 +41,11 @@ def snapshot_to_json(*, snapshot: LiveSnapshot, now_wall_time_s: float) -> dict[
     last = snapshot.last_batch_wall_time_s
     return {
         "session_id": snapshot.session_id,
+        "model": snapshot.model,
+        "class_names": list(snapshot.class_names),
         "latest_frame": None if snapshot.latest_frame is None else asdict(snapshot.latest_frame),
         "preview": None if preview is None else {"frame_id": preview.frame_id, "rotation_deg": preview.rotation_deg},
-        "preview_boxes": [asdict(box) for box in snapshot.preview_boxes],
+        "preview_items": [asdict(item) for item in snapshot.preview_items],
         "health": None if snapshot.health is None else asdict(snapshot.health),
         "queued_frames": snapshot.queued_frames,
         "dropped_frames": snapshot.dropped_frames,

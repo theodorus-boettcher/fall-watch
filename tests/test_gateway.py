@@ -10,6 +10,24 @@ from door_counter.gateway.messages import MessageError, parse_batch
 from door_counter.gateway.server import snapshot_to_json
 
 
+def make_item(*, x2: float = 0.3, class_id: int = 3) -> dict[str, object]:
+    """Build one item like the phone sends: a 3 x 2 cell mask with the middle column on.
+
+    Args:
+        x2: right edge of the box.
+        class_id: the item's class.
+
+    Returns:
+        The decoded JSON item.
+    """
+    return {
+        "class_id": class_id,
+        "score": 0.88,
+        "box": [0.1, 0.2, x2, 0.9],
+        "mask": {"rect": [0.1, 0.2, x2, 0.9], "width_cells": 3, "height_cells": 2, "runs": [1, 1, 2, 1, 1]},
+    }
+
+
 def make_payload(*, session_id: int = 7, first_frame_id: int = 0, frame_count: int = 2) -> dict[str, object]:
     """Build a batch like the phone sends, with a preview of the last frame.
 
@@ -28,12 +46,14 @@ def make_payload(*, session_id: int = 7, first_frame_id: int = 0, frame_count: i
             "width_px": 640,
             "height_px": 480,
             "inference_s": 0.12,
-            "boxes": [[0.1, 0.2, 0.3 + 0.01 * i, 0.9, 0.88]],
+            "items": [make_item(x2=0.3 + 0.01 * i)],
         }
         for i in range(frame_count)
     ]
     return {
         "session_id": session_id,
+        "model": "models/yolo26n-seg-320",
+        "class_names": ["cardboard", "soft plastic", "rigid plastic", "metal"],
         "frames": frames,
         "queued_frames": frame_count,
         "dropped_frames": 0,
@@ -59,7 +79,9 @@ def test_parse_batch_converts_units_and_types() -> None:
     assert batch.session_id == 7
     assert len(batch.frames) == 2
     assert batch.frames[0].wall_time_s == pytest.approx(1_760_000_000.0)
-    assert batch.frames[1].boxes[0].x2 == pytest.approx(0.31)
+    assert batch.frames[1].items[0].box.x2 == pytest.approx(0.31)
+    assert batch.frames[0].items[0].mask.runs == (1, 1, 2, 1, 1)
+    assert batch.class_names[batch.frames[0].items[0].class_id] == "metal"
     assert batch.health is not None and batch.health.uptime_s == pytest.approx(1000.0)
     assert batch.preview is not None and batch.preview.jpeg == b"\xff\xd8fake"
 
@@ -74,19 +96,23 @@ def test_parse_batch_accepts_missing_optional_parts() -> None:
 
 
 @pytest.mark.parametrize(
-    "box",
+    ("field", "value"),
     [
-        [0.1, 0.2, 0.3, 0.9],  # too short
-        [0.1, 0.2, 0.3, 1.5, 0.9],  # outside 0..1
-        [0.5, 0.2, 0.3, 0.9, 0.9],  # x1 > x2
-        [0.1, 0.2, 0.3, 0.9, True],  # bool is not a number here
+        ("box", [0.1, 0.2, 0.3]),  # too short
+        ("box", [0.1, 0.2, 0.3, 1.5]),  # outside 0..1
+        ("box", [0.5, 0.2, 0.3, 0.9]),  # x1 > x2
+        ("box", [0.1, 0.2, 0.3, True]),  # bool is not a number here
+        ("class_id", 4),  # only 4 classes
+        ("score", 1.2),
+        ("mask", {"rect": [0, 0, 1, 1], "width_cells": 3, "height_cells": 2, "runs": [1, 1, 1]}),  # runs too short
+        ("mask", {"rect": [0, 0, 1, 1], "width_cells": 1, "height_cells": 1, "runs": [-1, 2]}),  # negative run
     ],
 )
-def test_parse_batch_rejects_bad_boxes(box: list[object]) -> None:
+def test_parse_batch_rejects_bad_items(field: str, value: object) -> None:
     payload = make_payload()
     frames = payload["frames"]
     assert isinstance(frames, list)
-    frames[0]["boxes"] = [box]
+    frames[0]["items"][0][field] = value
     with pytest.raises(MessageError):
         parse_batch(payload=payload)
 
@@ -106,7 +132,7 @@ def test_parse_batch_rejects_bad_rotation_and_missing_fields() -> None:
         parse_batch(payload=["not", "an", "object"])
 
 
-def test_preview_gets_the_boxes_of_its_own_frame() -> None:
+def test_preview_gets_the_items_of_its_own_frame() -> None:
     state = LiveState()
     state.add_batch(batch=parse_batch(payload=make_payload(frame_count=3)), received_wall_time_s=10.0)
     newer = make_payload(first_frame_id=3, frame_count=2)
@@ -115,7 +141,7 @@ def test_preview_gets_the_boxes_of_its_own_frame() -> None:
     snapshot = state.snapshot()
     assert snapshot.latest_frame is not None and snapshot.latest_frame.frame_id == 4
     assert snapshot.preview is not None and snapshot.preview.frame_id == 2
-    assert snapshot.preview_boxes[0].x2 == pytest.approx(0.32)  # frame 2's box, not frame 4's
+    assert snapshot.preview_items[0].box.x2 == pytest.approx(0.32)  # frame 2's box, not frame 4's
 
 
 def test_new_session_clears_old_frames() -> None:
@@ -127,14 +153,14 @@ def test_new_session_clears_old_frames() -> None:
     snapshot = state.snapshot()
     assert snapshot.session_id == 2
     assert snapshot.preview is None
-    assert snapshot.preview_boxes == ()
+    assert snapshot.preview_items == ()
 
 
 def test_history_is_bounded() -> None:
     state = LiveState(history_frames=3)
     state.add_batch(batch=parse_batch(payload=make_payload(frame_count=10)), received_wall_time_s=10.0)
     # The preview's frame (9) is among the newest 3, so it keeps its boxes.
-    assert len(state.snapshot().preview_boxes) == 1
+    assert len(state.snapshot().preview_items) == 1
     with pytest.raises(ValueError):
         LiveState(history_frames=0)
 
@@ -145,4 +171,5 @@ def test_snapshot_json_leaves_out_the_picture() -> None:
     data = snapshot_to_json(snapshot=state.snapshot(), now_wall_time_s=12.5)
     assert data["seconds_since_last_batch"] == pytest.approx(2.5)
     assert data["preview"] == {"frame_id": 1, "rotation_deg": 180}
+    assert data["class_names"] == ["cardboard", "soft plastic", "rigid plastic", "metal"]
     assert "jpeg" not in str(data)

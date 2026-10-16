@@ -13,14 +13,18 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Foreground service that finds people in the camera stream and sends the boxes to the gateway.
+ * Foreground service that finds items in the camera stream and sends classes, boxes and masks to the gateway.
  *
  * <p>Works with the screen off: the preview goes to an off-screen SurfaceTexture and a partial
  * wake lock keeps the CPU running. The camera delivers frames into a few reused buffers. When the
@@ -30,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class CounterService extends Service {
     private static final String TAG = "DoorCounter";
     private static final int NOTIFICATION_ID = 1;
-    private static final String MODEL_NAME = "models/yolo26n-det-320";
+    private static final String MODEL_NAME = "models/yolo26n-seg-320";
     private static final float MIN_SCORE = 0.25f;
     private static final int TARGET_PREVIEW_WIDTH_PX = 640;
     private static final int CAMERA_BUFFER_COUNT = 3;
@@ -67,9 +71,14 @@ public final class CounterService extends Service {
         settings = Settings.load(this);
         Log.i(TAG, "starting, " + settings);
         try {
-            gateway = new GatewayClient(settings.gatewayUrl, System.currentTimeMillis());
+            gateway = new GatewayClient(settings.gatewayUrl, System.currentTimeMillis(), MODEL_NAME,
+                    readLabels(MODEL_NAME + ".labels"));
         } catch (MalformedURLException e) {
             Log.e(TAG, "bad gateway URL " + settings.gatewayUrl, e);
+            stopSelf();
+            return;
+        } catch (IOException e) {
+            Log.e(TAG, "class names missing for " + MODEL_NAME, e);
             stopSelf();
             return;
         }
@@ -128,6 +137,27 @@ public final class CounterService extends Service {
                 .setSmallIcon(android.R.drawable.ic_menu_camera)
                 .setOngoing(true)
                 .build();
+    }
+
+    /**
+     * Read the model's class names from the APK assets, one per line.
+     *
+     * @param assetPath path of the labels file
+     * @return the names, index = class id
+     * @throws IOException if the file is missing
+     */
+    private List<String> readLabels(String assetPath) throws IOException {
+        List<String> names = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(getAssets().open(assetPath), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.trim().isEmpty()) {
+                    names.add(line.trim());
+                }
+            }
+        }
+        return names;
     }
 
     /** Load the model (detector thread). Stops the service if the model is missing. */
@@ -237,17 +267,18 @@ public final class CounterService extends Service {
             int height = frameHeightPx;
             int rotation = settings.rotationDeg;
             long startNs = SystemClock.elapsedRealtimeNanos();
-            float[] boxes = detector.detect(nv21, width, height, rotation, MIN_SCORE);
+            float[] items = detector.detect(nv21, width, height, rotation, MIN_SCORE);
+            int[] runs = detector.lastRuns();
             double inferenceS = (SystemClock.elapsedRealtimeNanos() - startNs) / NANOS_PER_S;
             boolean isSwapped = rotation == 90 || rotation == 270;
             FrameResult result = new FrameResult(frameCount, System.currentTimeMillis(),
-                    isSwapped ? height : width, isSwapped ? width : height, inferenceS, boxes);
+                    isSwapped ? height : width, isSwapped ? width : height, inferenceS, items, runs);
             gateway.enqueue(result);
             if (settings.isPreviewEnabled && gateway.isPreviewSlotFree()) {
                 gateway.offerPreview(frameCount, nv21.clone(), width, height, rotation);
             }
             frameCount++;
-            updateStats(inferenceS, result.personCount());
+            updateStats(inferenceS, result.itemCount());
         } finally {
             isDetectorBusy.set(false);
             cameraHandler.post(() -> returnBuffer(nv21));
@@ -258,9 +289,9 @@ public final class CounterService extends Service {
      * Track speed over a short window; every few seconds log it and send a health snapshot.
      *
      * @param inferenceS detector time for the frame just processed
-     * @param personCount people found in it
+     * @param itemCount items found in it
      */
-    private void updateStats(double inferenceS, int personCount) {
+    private void updateStats(double inferenceS, int itemCount) {
         windowFrames++;
         windowInferenceS += inferenceS;
         long nowMs = SystemClock.elapsedRealtime();
@@ -272,8 +303,8 @@ public final class CounterService extends Service {
         double meanInferenceS = windowInferenceS / windowFrames;
         Health health = Health.sample(this, fps, meanInferenceS);
         gateway.updateHealth(health);
-        Log.i(TAG, String.format(Locale.ROOT, "fps=%.1f inference_ms=%.0f persons=%d battery_c=%.1f cpu_c=%s",
-                fps, meanInferenceS * MILLIS_PER_S, personCount, health.batteryTempC, health.cpuTempC));
+        Log.i(TAG, String.format(Locale.ROOT, "fps=%.1f inference_ms=%.0f items=%d battery_c=%.1f cpu_c=%s",
+                fps, meanInferenceS * MILLIS_PER_S, itemCount, health.batteryTempC, health.cpuTempC));
         windowStartMs = nowMs;
         windowFrames = 0;
         windowInferenceS = 0.0;

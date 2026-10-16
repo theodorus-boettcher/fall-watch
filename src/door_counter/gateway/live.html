@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Door counter live</title>
+<title>Sorting line live</title>
 <style>
   :root {
     --bg: #f4f4f1; --panel: #ffffff; --text: #1c1c1a; --muted: #6b6b66; --line: #deded8;
-    --box: #00a86b; --warn: #c2410c; --bad: #b91c1c;
+    --warn: #c2410c; --bad: #b91c1c;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #141413; --panel: #1f1f1d; --text: #ececea; --muted: #9b9b95; --line: #33332f;
-            --box: #34d399; --warn: #fb923c; --bad: #f87171; }
+            --warn: #fb923c; --bad: #f87171; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
@@ -26,21 +26,25 @@
   dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 12px 0 0; }
   dt { color: var(--muted); }
   dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
   .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
   .warn { color: var(--warn); }
   .bad { color: var(--bad); }
+  h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 16px 0 0; }
 </style>
 </head>
 <body>
 <main>
   <section class="panel">
-    <h1>Phone camera, boxes found on the phone</h1>
+    <h1>Phone camera, items found on the phone</h1>
     <canvas id="view" width="640" height="480"></canvas>
     <div class="status" id="status">waiting for the phone...</div>
   </section>
   <aside class="panel">
-    <div style="color: var(--muted)">people in view now</div>
-    <div class="big" id="persons">-</div>
+    <div style="color: var(--muted)">items in view now</div>
+    <div class="big" id="items">-</div>
+    <dl id="classes"></dl>
+    <h2>phone</h2>
     <dl>
       <dt>frames per second</dt><dd id="fps">-</dd>
       <dt>model time per frame</dt><dd id="inference">-</dd>
@@ -48,6 +52,7 @@
       <dt>battery</dt><dd id="battery">-</dd>
       <dt>queued on phone</dt><dd id="queued">-</dd>
       <dt>dropped</dt><dd id="dropped">-</dd>
+      <dt>model</dt><dd id="model">-</dd>
       <dt>frame</dt><dd id="frame">-</dd>
     </dl>
   </aside>
@@ -55,11 +60,16 @@
 <script>
   const POLL_MS = 150;
   const STALE_S = 3;
+  // Fixed colours per class id, distinct on dark and light backgrounds.
+  const PALETTE = [[230, 159, 0], [86, 180, 233], [0, 158, 115], [240, 228, 66], [204, 121, 167],
+                   [213, 94, 0], [0, 114, 178], [255, 255, 255]];
   const canvas = document.getElementById("view");
   const ctx = canvas.getContext("2d");
-  const boxColor = getComputedStyle(document.documentElement).getPropertyValue("--box").trim();
   let shownPreviewId = null;
   let loading = false;
+
+  function colour(classId) { return PALETTE[classId % PALETTE.length]; }
+  function rgb(c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; }
 
   function setText(id, text, cls) {
     const el = document.getElementById(id);
@@ -67,8 +77,30 @@
     el.className = cls || "";
   }
 
-  // Draw the picture rotated upright (clockwise), then the boxes, which are 0..1 of the upright frame.
-  function draw(img, rotationDeg, boxes) {
+  // A mask arrives as off/on runs over a small grid of cells; paint it into a tiny canvas
+  // and let drawImage stretch it (smoothly) over the mask rectangle.
+  function maskCanvas(mask, c) {
+    const w = mask.width_cells, h = mask.height_cells;
+    if (w === 0 || h === 0) { return null; }
+    const off = document.createElement("canvas");
+    off.width = w; off.height = h;
+    const octx = off.getContext("2d");
+    const img = octx.createImageData(w, h);
+    let pos = 0, on = false;
+    for (const run of mask.runs) {
+      if (on) {
+        for (let i = pos; i < pos + run; i++) {
+          img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = 140;
+        }
+      }
+      pos += run; on = !on;
+    }
+    octx.putImageData(img, 0, 0);
+    return off;
+  }
+
+  // Draw the picture rotated upright (clockwise), then masks, boxes and labels (0..1 of the upright frame).
+  function draw(img, rotationDeg, items, names) {
     const swapped = rotationDeg === 90 || rotationDeg === 270;
     canvas.width = swapped ? img.height : img.width;
     canvas.height = swapped ? img.width : img.height;
@@ -80,18 +112,42 @@
     ctx.rotate(rotationDeg * Math.PI / 180);
     ctx.drawImage(img, 0, 0);
     ctx.restore();
-    ctx.lineWidth = 3;
-    ctx.font = "bold 16px system-ui, sans-serif";
-    for (const b of boxes) {
-      const x = b.x1 * w, y = b.y1 * h, bw = (b.x2 - b.x1) * w, bh = (b.y2 - b.y1) * h;
-      ctx.strokeStyle = boxColor;
-      ctx.strokeRect(x, y, bw, bh);
-      const label = "person " + b.score.toFixed(2);
+    ctx.imageSmoothingEnabled = true;
+    ctx.lineWidth = 2;
+    ctx.font = "bold 15px system-ui, sans-serif";
+    for (const it of items) {
+      const c = colour(it.class_id);
+      const m = it.mask;
+      const mc = maskCanvas(m, c);
+      if (mc) {
+        ctx.drawImage(mc, m.rect.x1 * w, m.rect.y1 * h, (m.rect.x2 - m.rect.x1) * w, (m.rect.y2 - m.rect.y1) * h);
+      }
+      const b = it.box;
+      const x = b.x1 * w, y = b.y1 * h;
+      ctx.strokeStyle = rgb(c, 0.9);
+      ctx.strokeRect(x, y, (b.x2 - b.x1) * w, (b.y2 - b.y1) * h);
+      const label = (names[it.class_id] || ("class " + it.class_id)) + " " + it.score.toFixed(2);
       const tw = ctx.measureText(label).width + 8;
-      ctx.fillStyle = boxColor;
-      ctx.fillRect(x, Math.max(0, y - 22), tw, 22);
+      ctx.fillStyle = rgb(c, 0.9);
+      ctx.fillRect(x, Math.max(0, y - 21), tw, 21);
       ctx.fillStyle = "#000";
-      ctx.fillText(label, x + 4, Math.max(16, y - 6));
+      ctx.fillText(label, x + 4, Math.max(15, y - 6));
+    }
+  }
+
+  function showClassCounts(items, names) {
+    const counts = new Map();
+    for (const it of items) { counts.set(it.class_id, (counts.get(it.class_id) || 0) + 1); }
+    const dl = document.getElementById("classes");
+    dl.replaceChildren();
+    for (const [id, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
+      const dt = document.createElement("dt");
+      const sw = document.createElement("span");
+      sw.className = "swatch"; sw.style.background = rgb(colour(id), 1);
+      dt.append(sw, names[id] || ("class " + id));
+      const dd = document.createElement("dd");
+      dd.textContent = String(n);
+      dl.append(dt, dd);
     }
   }
 
@@ -105,13 +161,15 @@
       } else if (age > STALE_S) {
         setText("status", "no data from the phone for " + age.toFixed(0) + " s", "bad");
       } else {
-        setText("status", s.preview ? "live" : "live, but previews are off (only boxes arrive)",
+        setText("status", s.preview ? "live" : "live, but previews are off (only items arrive)",
                 s.preview ? "" : "warn");
       }
       if (s.latest_frame) {
-        setText("persons", String(s.latest_frame.boxes.length));
+        setText("items", String(s.latest_frame.items.length));
         setText("frame", "#" + s.latest_frame.frame_id);
+        showClassCounts(s.latest_frame.items, s.class_names);
       }
+      if (s.model) { setText("model", s.model.replace("models/", "")); }
       if (s.health) {
         const hl = s.health;
         setText("fps", hl.fps.toFixed(1));
@@ -127,7 +185,11 @@
       if (s.preview && s.preview.frame_id !== shownPreviewId && !loading) {
         loading = true;
         const img = new Image();
-        img.onload = () => { draw(img, s.preview.rotation_deg, s.preview_boxes); shownPreviewId = s.preview.frame_id; loading = false; };
+        img.onload = () => {
+          draw(img, s.preview.rotation_deg, s.preview_items, s.class_names);
+          shownPreviewId = s.preview.frame_id;
+          loading = false;
+        };
         img.onerror = () => { loading = false; };
         img.src = "/preview.jpg?f=" + s.preview.frame_id;
       }

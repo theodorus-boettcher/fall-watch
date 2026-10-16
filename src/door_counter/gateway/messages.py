@@ -1,8 +1,8 @@
 """Messages the phone sends to the gateway, checked and turned into dataclasses.
 
 The phone POSTs one JSON batch to ``/frames`` at a time (see ``GatewayClient.java``). Times arrive
-in milliseconds and are converted to seconds here; box coordinates are normalised to 0..1 of the
-upright frame.
+in milliseconds and are converted to seconds here. Boxes and mask rectangles are 0..1 of the upright
+frame; a mask is a small patch of cells with run-length encoding (see ``door_counter.yolo_seg``).
 """
 
 import base64
@@ -10,8 +10,10 @@ import binascii
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
+from door_counter.yolo_seg import Rect
+
 MILLIS_PER_S = 1000.0
-VALUES_PER_BOX = 5
+RECT_VALUES = 4
 ROTATIONS_DEG = (0, 90, 180, 270)
 
 
@@ -20,14 +22,23 @@ class MessageError(ValueError):
 
 
 @dataclass(frozen=True)
-class Box:
-    """One person found by the phone. Coordinates are 0..1 of the upright frame."""
+class Mask:
+    """An item's mask: ``width_cells`` x ``height_cells`` cells covering ``rect``, as off/on runs."""
 
-    x1: float
-    y1: float
-    x2: float
-    y2: float
+    rect: Rect
+    width_cells: int
+    height_cells: int
+    runs: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class Item:
+    """One item found by the phone."""
+
+    class_id: int
     score: float
+    box: Rect
+    mask: Mask
 
 
 @dataclass(frozen=True)
@@ -39,7 +50,7 @@ class Frame:
     width_px: int
     height_px: int
     inference_s: float
-    boxes: tuple[Box, ...]
+    items: tuple[Item, ...]
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,8 @@ class Batch:
     """One POST from the phone: frames oldest first, plus status and maybe a preview."""
 
     session_id: int
+    model: str
+    class_names: tuple[str, ...]
     frames: tuple[Frame, ...]
     queued_frames: int
     dropped_frames: int
@@ -91,9 +104,17 @@ def parse_batch(*, payload: object) -> Batch:
     body = _as_mapping(value=payload, name="batch")
     health = body.get("health")
     preview = body.get("preview")
+    model = body.get("model")
+    if not isinstance(model, str):
+        raise MessageError("model must be a string")
+    class_names = body.get("class_names")
+    if not isinstance(class_names, list) or not all(isinstance(n, str) for n in class_names):
+        raise MessageError("class_names must be a list of strings")
     return Batch(
         session_id=_get_int(obj=body, key="session_id"),
-        frames=tuple(_parse_frames(value=body.get("frames"))),
+        model=model,
+        class_names=tuple(class_names),
+        frames=tuple(_parse_frames(value=body.get("frames"), class_count=len(class_names))),
         queued_frames=_get_int(obj=body, key="queued_frames"),
         dropped_frames=_get_int(obj=body, key="dropped_frames"),
         health=None if health is None else _parse_health(value=health),
@@ -101,11 +122,12 @@ def parse_batch(*, payload: object) -> Batch:
     )
 
 
-def _parse_frames(*, value: object) -> Iterator[Frame]:
+def _parse_frames(*, value: object, class_count: int) -> Iterator[Frame]:
     """Yield the frames of a batch.
 
     Args:
         value: the ``frames`` field.
+        class_count: number of classes the model knows.
 
     Returns:
         A generator of frames, oldest first.
@@ -117,42 +139,95 @@ def _parse_frames(*, value: object) -> Iterator[Frame]:
         raise MessageError("frames must be a list")
     for item in value:
         frame = _as_mapping(value=item, name="frame")
-        boxes = frame.get("boxes")
-        if not isinstance(boxes, list):
-            raise MessageError("boxes must be a list")
+        items = frame.get("items")
+        if not isinstance(items, list):
+            raise MessageError("items must be a list")
         yield Frame(
             frame_id=_get_int(obj=frame, key="frame_id"),
             wall_time_s=_get_int(obj=frame, key="wall_time_ms") / MILLIS_PER_S,
             width_px=_get_int(obj=frame, key="width_px"),
             height_px=_get_int(obj=frame, key="height_px"),
             inference_s=_get_float(obj=frame, key="inference_s"),
-            boxes=tuple(_parse_box(value=box) for box in boxes),
+            items=tuple(_parse_item(value=entry, class_count=class_count) for entry in items),
         )
     return None
 
 
-def _parse_box(*, value: object) -> Box:
-    """Convert ``[x1, y1, x2, y2, score]``.
+def _parse_item(*, value: object, class_count: int) -> Item:
+    """Convert one entry of a frame's ``items`` list.
 
     Args:
-        value: one entry of a frame's ``boxes`` list.
+        value: the entry.
+        class_count: number of classes the model knows.
 
     Returns:
-        The box.
+        The item.
 
     Raises:
-        MessageError: if it is not 5 numbers in 0..1 with x1 <= x2 and y1 <= y2.
+        MessageError: if the class id, score, box or mask is malformed.
     """
-    if not isinstance(value, list) or len(value) != VALUES_PER_BOX:
-        raise MessageError(f"a box must be a list of {VALUES_PER_BOX} numbers")
+    item = _as_mapping(value=value, name="item")
+    class_id = _get_int(obj=item, key="class_id")
+    if not 0 <= class_id < class_count:
+        raise MessageError(f"class_id {class_id} outside 0..{class_count - 1}")
+    score = _get_float(obj=item, key="score")
+    if not 0.0 <= score <= 1.0:
+        raise MessageError("score must be in 0..1")
+    return Item(
+        class_id=class_id,
+        score=score,
+        box=_parse_rect(value=item.get("box"), name="box"),
+        mask=_parse_mask(value=item.get("mask")),
+    )
+
+
+def _parse_mask(*, value: object) -> Mask:
+    """Convert an item's ``mask`` field.
+
+    Args:
+        value: the field.
+
+    Returns:
+        The mask.
+
+    Raises:
+        MessageError: if the rect is malformed or the runs do not fill the patch exactly.
+    """
+    mask = _as_mapping(value=value, name="mask")
+    width = _get_int(obj=mask, key="width_cells")
+    height = _get_int(obj=mask, key="height_cells")
+    runs = mask.get("runs")
+    if not isinstance(runs, list) or not all(isinstance(r, int) and not isinstance(r, bool) for r in runs):
+        raise MessageError("runs must be a list of integers")
+    if width < 0 or height < 0 or any(r < 0 for r in runs) or sum(runs) != width * height:
+        raise MessageError("runs must be non-negative and add up to width_cells x height_cells")
+    return Mask(rect=_parse_rect(value=mask.get("rect"), name="mask rect"), width_cells=width, height_cells=height,
+                runs=tuple(runs))
+
+
+def _parse_rect(*, value: object, name: str) -> Rect:
+    """Convert ``[x1, y1, x2, y2]`` in 0..1.
+
+    Args:
+        value: the JSON value.
+        name: what it is, for the error message.
+
+    Returns:
+        The rectangle.
+
+    Raises:
+        MessageError: if it is not 4 numbers in 0..1 with x1 <= x2 and y1 <= y2.
+    """
+    if not isinstance(value, list) or len(value) != RECT_VALUES:
+        raise MessageError(f"{name} must be a list of {RECT_VALUES} numbers")
     if not all(isinstance(v, int | float) and not isinstance(v, bool) for v in value):
-        raise MessageError("box values must be numbers")
-    x1, y1, x2, y2, score = (float(v) for v in value)
-    if not all(0.0 <= v <= 1.0 for v in (x1, y1, x2, y2, score)):
-        raise MessageError("box values must be in 0..1")
+        raise MessageError(f"{name} values must be numbers")
+    x1, y1, x2, y2 = (float(v) for v in value)
+    if not all(0.0 <= v <= 1.0 for v in (x1, y1, x2, y2)):
+        raise MessageError(f"{name} values must be in 0..1")
     if x1 > x2 or y1 > y2:
-        raise MessageError("box corners are swapped")
-    return Box(x1=x1, y1=y1, x2=x2, y2=y2, score=score)
+        raise MessageError(f"{name} corners are swapped")
+    return Rect(x1=x1, y1=y1, x2=x2, y2=y2)
 
 
 def _parse_health(*, value: object) -> Health:
