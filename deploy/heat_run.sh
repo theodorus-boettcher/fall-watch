@@ -21,7 +21,8 @@ while [ $(( $(date +%s) - start )) -lt "${duration_s}" ]; do
 import json, sys
 h = json.load(sys.stdin).get("health")
 if h:
-    print(f"{h[\"fps\"]:.2f},{1000 * h[\"mean_inference_s\"]:.0f},{h[\"cpu_temp_c\"]:.1f},{h[\"battery_temp_c\"]:.1f},{h[\"battery_level_pct\"]},{h[\"is_charging\"]}")
+    print("%.2f,%.0f,%.1f,%.1f,%d,%s" % (h["fps"], 1000 * h["mean_inference_s"], h["cpu_temp_c"], h["battery_temp_c"],
+                                         h["battery_level_pct"], h["is_charging"]))
 ' || true)
   [ -z "${row}" ] && continue
   echo "$(( $(date +%s) - start )),${row}" >> "${out}"
