@@ -9,6 +9,7 @@ Endpoints:
     GET  /             the live page
     GET  /api/latest   the current state as JSON, polled by the page
     GET  /preview.jpg  the newest preview picture
+    POST /capture?clip=metal-1   save previews into data/captures/metal-1/ (no clip: stop saving)
 """
 
 import argparse
@@ -18,12 +19,16 @@ from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
+from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
+from door_counter.gateway.capture import Capture, CaptureError
 from door_counter.gateway.live_state import LiveSnapshot, LiveState
 from door_counter.gateway.messages import MessageError, parse_batch
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
+DEFAULT_CAPTURE_DIR = Path("data/captures")
 MAX_BODY_BYTES = 8 * 1024 * 1024
 
 
@@ -53,12 +58,13 @@ def snapshot_to_json(*, snapshot: LiveSnapshot, now_wall_time_s: float) -> dict[
     }
 
 
-def make_handler(*, state: LiveState, page: bytes) -> type[BaseHTTPRequestHandler]:
+def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class bound to one shared state.
 
     Args:
         state: the store shared by all requests.
         page: the live page HTML.
+        capture: saves previews while a clip is running.
 
     Returns:
         A handler class for ThreadingHTTPServer.
@@ -68,7 +74,11 @@ def make_handler(*, state: LiveState, page: bytes) -> type[BaseHTTPRequestHandle
         """Handles one HTTP request from the phone or the browser."""
 
         def do_POST(self) -> None:
-            """Take a batch from the phone."""
+            """Take a batch from the phone, or start/stop a capture clip."""
+            url = urlsplit(self.path)
+            if url.path == "/capture":
+                self._set_capture(clip=parse_qs(url.query).get("clip", [""])[0])
+                return None
             if self.path != "/frames":
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return None
@@ -82,8 +92,31 @@ def make_handler(*, state: LiveState, page: bytes) -> type[BaseHTTPRequestHandle
                 self.send_error(HTTPStatus.BAD_REQUEST, explain=str(e))
                 return None
             state.add_batch(batch=batch, received_wall_time_s=time.time())
+            if batch.preview is not None:
+                try:
+                    capture.save(preview=batch.preview, session_id=batch.session_id)
+                except (CaptureError, OSError) as e:  # a lost picture must not lose the batch
+                    print(f"capture: {e}", flush=True)
             self.send_response(HTTPStatus.NO_CONTENT)
             self.end_headers()
+            return None
+
+        def _set_capture(self, *, clip: str) -> None:
+            """Start saving into a clip, or stop when the name is empty.
+
+            Args:
+                clip: the clip name from the query string.
+            """
+            try:
+                if clip:
+                    capture.start(clip=clip)
+                else:
+                    capture.stop()
+            except CaptureError as e:
+                self.send_error(HTTPStatus.BAD_REQUEST, explain=str(e))
+                return None
+            print(f"capture: {clip or 'stopped'}", flush=True)
+            self._send(body=json.dumps({"clip": capture.clip}).encode(), content_type="application/json")
             return None
 
         def do_GET(self) -> None:
@@ -93,6 +126,7 @@ def make_handler(*, state: LiveState, page: bytes) -> type[BaseHTTPRequestHandle
                 self._send(body=page, content_type="text/html; charset=utf-8")
             elif path == "/api/latest":
                 data = snapshot_to_json(snapshot=state.snapshot(), now_wall_time_s=time.time())
+                data["capture"] = {"clip": capture.clip, "saved": capture.saved}
                 self._send(body=json.dumps(data).encode(), content_type="application/json")
             elif path == "/preview.jpg":
                 preview = state.snapshot().preview
@@ -131,9 +165,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Door counter gateway: receives the phone's detections.")
     parser.add_argument("--host", default=DEFAULT_HOST, help="address to listen on (0.0.0.0 for Wi-Fi)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--capture-dir", type=Path, default=DEFAULT_CAPTURE_DIR, help="where capture clips go")
     args = parser.parse_args()
     page = resources.files("door_counter.gateway").joinpath("live.html").read_bytes()
-    handler = make_handler(state=LiveState(), page=page)
+    handler = make_handler(state=LiveState(), page=page, capture=Capture(root=args.capture_dir))
     with ThreadingHTTPServer((args.host, args.port), handler) as server:
         print(f"gateway on http://{args.host}:{args.port}", flush=True)
         try:

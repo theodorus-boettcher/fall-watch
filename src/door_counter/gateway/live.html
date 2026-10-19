@@ -54,6 +54,7 @@
       <dt>dropped</dt><dd id="dropped">-</dd>
       <dt>model</dt><dd id="model">-</dd>
       <dt>frame</dt><dd id="frame">-</dd>
+      <dt>recording</dt><dd id="capture">-</dd>
     </dl>
   </aside>
 </main>
@@ -182,6 +183,10 @@
       }
       setText("queued", String(s.queued_frames), s.queued_frames > 50 ? "warn" : "");
       setText("dropped", String(s.dropped_frames), s.dropped_frames > 0 ? "bad" : "");
+      if (s.capture) {
+        setText("capture", s.capture.clip ? s.capture.clip + ", " + s.capture.saved + " pictures" : "off",
+                s.capture.clip ? "warn" : "");
+      }
       if (s.preview && s.preview.frame_id !== shownPreviewId && !loading) {
         loading = true;
         const img = new Image();

@@ -2,11 +2,15 @@
 
 import base64
 import copy
+from pathlib import Path
 
+import cv2
+import numpy as np
 import pytest
 
+from door_counter.gateway.capture import Capture, CaptureError
 from door_counter.gateway.live_state import LiveState
-from door_counter.gateway.messages import MessageError, parse_batch
+from door_counter.gateway.messages import MessageError, Preview, parse_batch
 from door_counter.gateway.server import snapshot_to_json
 
 
@@ -173,3 +177,28 @@ def test_snapshot_json_leaves_out_the_picture() -> None:
     assert data["preview"] == {"frame_id": 1, "rotation_deg": 180}
     assert data["class_names"] == ["cardboard", "soft plastic", "rigid plastic", "metal"]
     assert "jpeg" not in str(data)
+
+
+def test_capture_saves_upright_pictures_only_while_a_clip_runs(tmp_path: Path) -> None:
+    pixels = np.zeros((4, 6, 3), dtype=np.uint8)
+    pixels[0, 0] = 255  # a white top-left corner shows which way the picture was turned
+    jpeg = bytes(cv2.imencode(".png", pixels)[1])  # lossless, so the corner survives
+    preview = Preview(frame_id=3, rotation_deg=90, jpeg=jpeg)
+    capture = Capture(root=tmp_path)
+    assert capture.save(preview=preview, session_id=1) is None
+    capture.start(clip="metal-1")
+    saved = capture.save(preview=preview, session_id=1)
+    assert saved == tmp_path / "metal-1" / "1_00000003.jpg"
+    upright = cv2.imread(str(saved), cv2.IMREAD_GRAYSCALE)
+    assert upright is not None
+    assert upright.shape == (6, 4)
+    assert upright[0, -1] > 128  # turned clockwise: the corner moved to the top right
+    capture.stop()
+    assert capture.save(preview=preview, session_id=1) is None
+    assert capture.saved == 1
+
+
+@pytest.mark.parametrize("name", ["../x", "Metal", "", "a/b", "x" * 49])
+def test_capture_refuses_unsafe_clip_names(tmp_path: Path, name: str) -> None:
+    with pytest.raises(CaptureError):
+        Capture(root=tmp_path).start(clip=name)
