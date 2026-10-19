@@ -1,7 +1,8 @@
 """Build the v2 training set: every source turned into our four classes, side by side.
 
 Each source lands in ``<out>/<source>/<split>/{images,labels}`` (YOLO segmentation labels), and
-``<out>/data.yaml`` lists them all:
+``<out>/data.yaml`` lists them all. A source that is already built is kept as it is (so pictures the
+hand filter moved out stay out); delete its folder to build it again:
 
 - ``zerowaste``: the plant footage, linked from ``data/zerowaste-960`` (validation and test stay plant-only
   plus ``home`` validation).
@@ -62,6 +63,7 @@ UNIVERSE_MATERIALS: dict[str, int | None] = {
 SUPPORT_RIGHT_EDGE = 0.14  # the phone support fills the left 12% of the upright home picture
 SUPPORT_SHARE = 0.7  # an outline this much on the support is the support, not an item
 DUPLICATE_IOU = 0.6
+MAX_CARDBOARD_PIECES = 4  # SAM 3 cuts a TrashNet box close-up into its panels; such pictures are left out
 MASK_SIZE_PX = (160, 120)  # outlines are compared on a small raster
 MAX_SIDE_PX = 960
 JPEG_QUALITY = 90
@@ -177,7 +179,7 @@ def link_or_copy(*, source: Path, target: Path) -> None:
 
 def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int | None],
                keep: Callable[[Path], bool] = lambda _: True,
-               clean: Callable[[Sequence[str]], list[str]] | None = None) -> int:
+               clean: Callable[[Sequence[str]], list[str] | None] | None = None) -> int:
     """Copy one YOLO split (``images/`` next to ``labels/``) with our classes.
 
     Args:
@@ -185,7 +187,7 @@ def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int |
         out_dir: the target split folder; gets ``images/`` and ``labels/``.
         class_map: source class index -> ours.
         keep: which pictures to take.
-        clean: optional extra pass over each picture's remapped lines.
+        clean: optional extra pass over each picture's remapped lines; None leaves the picture out.
 
     Returns:
         Pictures written.
@@ -201,6 +203,8 @@ def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int |
             continue
         if clean is not None:
             lines = clean(lines)
+            if lines is None:
+                continue
         link_or_copy(source=image, target=out_dir / "images" / image.name)
         (out_dir / "labels").mkdir(parents=True, exist_ok=True)
         (out_dir / "labels" / f"{image.stem}.txt").write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
@@ -317,16 +321,18 @@ def main() -> None:
 
     human = {source_stem(name=p.name) for p in (args.trash_seg / "train" / "images").glob("*.jpg")}
     names = yaml.safe_load((args.trash_seg / "data.yaml").read_text(encoding="utf-8"))["names"]
-    counts["trashnet human"] = copy_split(images_dir=args.trash_seg / "train" / "images",
-                                          out_dir=out / "trashnet-human" / "train", class_map=class_map_from_names(names=names))
+    if not (out / "trashnet-human").is_dir():
+        counts["trashnet human"] = copy_split(images_dir=args.trash_seg / "train" / "images",
+                                              out_dir=out / "trashnet-human" / "train",
+                                              class_map=class_map_from_names(names=names))
     train.append(out / "trashnet-human" / "train" / "images")
 
     names = yaml.safe_load((args.rf_export / "data.yaml").read_text(encoding="utf-8"))["names"]
     ours = class_map_from_names(names=names)
     for split in ("train", "valid"):
         images_dir = args.rf_export / split / "images"
-        if not images_dir.is_dir():
-            continue
+        if not images_dir.is_dir() or (out / "home" / split).is_dir():
+            continue  # trashnet-sam3 is built together with home: delete both folders to redo
         counts[f"home {split}"] = copy_split(
             images_dir=images_dir, out_dir=out / "home" / split, class_map=ours,
             keep=lambda p: HOME_NAME.match(source_stem(name=p.name)) is not None,
@@ -334,7 +340,9 @@ def main() -> None:
         counts[f"trashnet sam3 {split}"] = copy_split(
             images_dir=images_dir, out_dir=out / "trashnet-sam3" / "train", class_map=ours,
             keep=lambda p: (TRASHNET_NAME.match(source_stem(name=p.name)) is not None
-                            and source_stem(name=p.name) not in human))
+                            and source_stem(name=p.name) not in human),
+            clean=lambda lines: None if sum(line.split()[0] == str(CARDBOARD) for line in lines) > MAX_CARDBOARD_PIECES
+            else list(lines))
     train += [out / "home" / "train" / "images", out / "trashnet-sam3" / "train" / "images"]
     val.append(out / "home" / "valid" / "images")
 
@@ -348,11 +356,12 @@ def main() -> None:
         seen.add(stem)
         return True
 
-    counts["bottle"] = copy_split(images_dir=args.bottle / "train" / "images", out_dir=out / "bottle" / "train",
-                                  class_map=class_map_from_names(names=names), keep=first_copy)
+    if not (out / "bottle").is_dir():
+        counts["bottle"] = copy_split(images_dir=args.bottle / "train" / "images", out_dir=out / "bottle" / "train",
+                                      class_map=class_map_from_names(names=names), keep=first_copy)
     train.append(out / "bottle" / "train" / "images")
 
-    if not (out / "taco" / "train" / "images").is_dir():  # slow (full-size photos); delete the folder to redo
+    if not (out / "taco").is_dir():  # slow (full-size photos)
         counts["taco"], counts["taco left out"] = convert_taco(taco_data=args.taco, out_dir=out / "taco")
     train.append(out / "taco" / "train" / "images")
     val.append(out / "taco" / "valid" / "images")

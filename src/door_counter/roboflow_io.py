@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import roboflow
-from roboflow.adapters.rfapi import ImageUploadError
+from roboflow.adapters.rfapi import ImageUploadError, RoboflowError
 from roboflow.core.project import Project
 
 WORKSPACE = "<workspace>"
@@ -233,7 +233,7 @@ def export_version(*, project: Project, out_dir: Path) -> Path:
         try:
             project.version(number).download("yolov8", location=str(out_dir), overwrite=True)
             return out_dir
-        except RuntimeError as e:  # the version is still being generated
+        except (RuntimeError, RoboflowError) as e:  # still being generated, or Roboflow's passing 'Internal Error'
             print(f"version {number} not ready ({e}); waiting", flush=True)
             time.sleep(VERSION_WAIT_S)
     raise TimeoutError(f"version {number} was not ready after {VERSION_WAIT_TRIES * VERSION_WAIT_S} s")
