@@ -1,8 +1,10 @@
 """Talking to Roboflow: API key, the project, uploads.
 
 The key lives in the repo's git-ignored ``.env`` as ``ROBOFLOW_API_KEY=...`` and is never printed.
-Run ``uv run python -m door_counter.roboflow_io`` to create (or find) the project, and
-``... --upload data/zerowaste-960`` to upload a converted dataset (see ``door_counter.zerowaste``).
+Run ``uv run python -m door_counter.roboflow_io`` to create (or find) the project,
+``... --upload data/zerowaste-960`` to upload a converted dataset (see ``door_counter.zerowaste``),
+``... --home-clips data/captures`` to upload the home clips and start SAM 3 labeling on each, and
+``... --job <id>`` to see how a labeling job is doing.
 """
 
 import argparse
@@ -21,6 +23,16 @@ ANNOTATION_GROUP = "materials"
 KEY_NAME = "ROBOFLOW_API_KEY"
 SPLITS = ("train", "valid", "test")
 COCO_FILE = "_annotations.coco.json"
+# One material per home clip, so every SAM 3 text prompt of a clip maps to that clip's material.
+HOME_PROMPTS = {
+    "cardboard": ("cardboard", "cardboard box"),
+    "soft plastic": ("plastic bag", "plastic film", "plastic wrapper"),
+    "rigid plastic": ("plastic bottle", "plastic container", "plastic cup"),
+    "metal": ("can", "metal can", "aluminium foil"),
+}
+AUTOLABEL_MODEL = "sam3-polygon"
+AUTOLABEL_CONFIDENCE = 0.4
+VALID_EVERY = 5  # every 5th uploaded home picture goes to valid (only for early stopping; the test is separate)
 
 
 class MissingApiKeyError(RuntimeError):
@@ -139,17 +151,89 @@ def upload_dataset(*, api_key: str, dataset_dir: Path, batch_name: str) -> objec
     )
 
 
+def material_of_clip(*, clip: str) -> str | None:
+    """Read the material from a clip name: ``soft-plastic-2`` -> ``soft plastic``.
+
+    Args:
+        clip: the clip folder name.
+
+    Returns:
+        The material, or None for clips that hold more than one (the test scenes).
+    """
+    for material in HOME_PROMPTS:
+        if clip.startswith(material.replace(" ", "-") + "-"):
+            return material
+    return None
+
+
+def upload_clip(*, project: Project, clip_dir: Path, every: int) -> str:
+    """Upload every n-th picture of one clip into its own batch.
+
+    Args:
+        project: the Roboflow project.
+        clip_dir: folder of one capture clip.
+        every: keep one picture in this many (neighbours are nearly the same picture).
+
+    Returns:
+        The batch name.
+    """
+    batch_name = f"home-{clip_dir.name}"
+    for i, image in enumerate(sorted(clip_dir.glob("*.jpg"))[::every]):
+        project.upload(image_path=str(image), split="valid" if i % VALID_EVERY == VALID_EVERY - 1 else "train",
+                       batch_name=batch_name, tag_names=["home", clip_dir.name], num_retry_uploads=3)
+    return batch_name
+
+
+def start_autolabel(*, project: Project, batch_name: str, material: str) -> dict[str, object]:
+    """Start SAM 3 Auto Label on one uploaded batch, with the material's text prompts.
+
+    Args:
+        project: the Roboflow project.
+        batch_name: the batch made by ``upload_clip``.
+        material: the clip's material; every outline found gets this class.
+
+    Returns:
+        Roboflow's reply with ``jobId``.
+
+    Raises:
+        LookupError: if the batch is not in the project.
+    """
+    batches = project.get_batches().get("batches", [])
+    batch_id = next((b["id"] for b in batches if b.get("name") == batch_name), None)
+    if batch_id is None:
+        raise LookupError(f"batch {batch_name!r} not found among {[b.get('name') for b in batches]}")
+    result: dict[str, object] = project.autolabel(
+        batch_id, model=AUTOLABEL_MODEL, ontology={prompt: material for prompt in HOME_PROMPTS[material]},
+        confidence=AUTOLABEL_CONFIDENCE,
+    )
+    return result
+
+
 def main() -> None:
     """Create or find the project, optionally upload a dataset, and print what Roboflow reports."""
     parser = argparse.ArgumentParser(description="Create or find the Roboflow project, upload datasets.")
     parser.add_argument("--env", type=Path, default=Path(".env"), help="file holding ROBOFLOW_API_KEY")
     parser.add_argument("--upload", type=Path, help="converted dataset folder to upload")
     parser.add_argument("--batch", default="zerowaste-f", help="upload batch name")
+    parser.add_argument("--home-clips", type=Path, help="capture folder: upload one-material clips, start SAM 3")
+    parser.add_argument("--every", type=int, default=3, help="upload one home picture in this many")
+    parser.add_argument("--job", help="show the status of an auto-label job")
     args = parser.parse_args()
     api_key = load_api_key(env_path=args.env)
     if args.upload is not None:
         print("upload status:", upload_dataset(api_key=api_key, dataset_dir=args.upload, batch_name=args.batch))
     project = get_or_create_project(api_key=api_key)
+    if args.home_clips is not None:
+        for clip_dir in sorted(d for d in args.home_clips.iterdir() if d.is_dir()):
+            material = material_of_clip(clip=clip_dir.name)
+            if material is None:
+                print(f"{clip_dir.name}: skipped (not a one-material clip)", flush=True)
+                continue
+            batch_name = upload_clip(project=project, clip_dir=clip_dir, every=args.every)
+            job = start_autolabel(project=project, batch_name=batch_name, material=material)
+            print(f"{clip_dir.name}: uploaded as {batch_name}, SAM 3 job {job.get('jobId')}", flush=True)
+    if args.job is not None:
+        print(project.autolabel_job(args.job))
     print(f"project {project.id} type={project.type} images={project.images} public={project.public}")
     return None
 

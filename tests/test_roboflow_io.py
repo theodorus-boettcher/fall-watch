@@ -37,3 +37,12 @@ def test_zip_needs_every_split(tmp_path: Path) -> None:
     (tmp_path / "ds" / "train" / "images").mkdir(parents=True)
     with pytest.raises(FileNotFoundError):
         roboflow_io.pack_coco_zip(dataset_dir=tmp_path / "ds", zip_path=tmp_path / "ds.zip")
+
+
+@pytest.mark.parametrize(
+    ("clip", "material"),
+    [("metal-1", "metal"), ("soft-plastic-2", "soft plastic"), ("rigid-plastic-1", "rigid plastic"),
+     ("cardboard-3", "cardboard"), ("test-1", None), ("metal", None), ("soft-1", None)],
+)
+def test_material_comes_from_the_clip_name(clip: str, material: str | None) -> None:
+    assert roboflow_io.material_of_clip(clip=clip) == material
