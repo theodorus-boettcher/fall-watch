@@ -6,6 +6,7 @@ __pycache__/
 # photos, recordings and trained weights stay out of git
 data/
 *.pt
+*.ts
 
 # android build output
 android/.gradle/
