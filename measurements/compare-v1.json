@@ -1,0 +1,41 @@
+[
+  {
+    "model": "v1",
+    "set": "plant",
+    "pictures": 929,
+    "mask_map50": 0.3,
+    "mask_map50_95": 0.172,
+    "mask_map50_per_material": {
+      "cardboard": 0.476,
+      "soft plastic": 0.395,
+      "rigid plastic": 0.23,
+      "metal": 0.098
+    }
+  },
+  {
+    "model": "v1",
+    "set": "home",
+    "pictures": 53,
+    "mask_map50": 0.103,
+    "mask_map50_95": 0.054,
+    "mask_map50_per_material": {
+      "cardboard": 0.168,
+      "soft plastic": 0.126,
+      "rigid plastic": 0.022,
+      "metal": 0.095
+    }
+  },
+  {
+    "model": "v1",
+    "set": "taco",
+    "pictures": 100,
+    "mask_map50": 0.051,
+    "mask_map50_95": 0.035,
+    "mask_map50_per_material": {
+      "cardboard": 0.11,
+      "soft plastic": 0.034,
+      "rigid plastic": 0.035,
+      "metal": 0.025
+    }
+  }
+]
