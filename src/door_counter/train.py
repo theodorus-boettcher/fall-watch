@@ -86,15 +86,17 @@ def count_images(*, data_yaml: Path, split: str) -> int:
         split: ``val`` or ``test``.
 
     Returns:
-        Number of image files in the split's folder.
+        Number of image files in the split's folder (or folders, for a mixed dataset).
 
     Raises:
         KeyError: if the split is not in the file.
     """
     with data_yaml.open(encoding="utf-8") as f:
         spec = yaml.safe_load(f)
-    folder = Path(spec["path"]) / spec[SPLIT_KEYS[split]]
-    return sum(1 for p in folder.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
+    folders = spec[SPLIT_KEYS[split]]
+    folders = folders if isinstance(folders, list) else [folders]
+    return sum(1 for folder in folders for p in (Path(spec["path"]) / folder).iterdir()
+               if p.suffix.lower() in IMAGE_SUFFIXES)
 
 
 def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> Scores:

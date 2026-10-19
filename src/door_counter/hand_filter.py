@@ -90,12 +90,14 @@ def main() -> None:
     parser.add_argument("--clips", type=Path, required=True, help="capture folder, one subfolder per clip")
     parser.add_argument("--out", type=Path, required=True, help="pictures with hands move to <out>/<clip>/")
     parser.add_argument("--clip", action="append", help="only these clips (default: all)")
+    parser.add_argument("--neighbours", type=int, default=NEIGHBOURS,
+                        help="pictures dropped on each side of a hand; 0 for photo sets that are not recordings")
     args = parser.parse_args()
     clip_dirs = sorted(d for d in args.clips.iterdir() if d.is_dir() and (args.clip is None or d.name in args.clip))
     for clip_dir in clip_dirs:
         pictures = sorted(clip_dir.glob("*.jpg"))  # names are <session>_<frame>, so this is recording order
         has_hand = list(find_hands(pictures=pictures))
-        drop = pictures_to_drop(has_hand=has_hand, neighbours=NEIGHBOURS)
+        drop = pictures_to_drop(has_hand=has_hand, neighbours=args.neighbours)
         (args.out / clip_dir.name).mkdir(parents=True, exist_ok=True)
         for i in sorted(drop):
             shutil.move(pictures[i], args.out / clip_dir.name / pictures[i].name)
