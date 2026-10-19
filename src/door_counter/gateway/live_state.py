@@ -4,6 +4,7 @@ import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 
+from door_counter.gateway.line_counter import LineCounter
 from door_counter.gateway.messages import Batch, Frame, Health, Item, Preview
 
 DEFAULT_HISTORY_FRAMES = 600
@@ -23,6 +24,7 @@ class LiveSnapshot:
     queued_frames: int
     dropped_frames: int
     last_batch_wall_time_s: float | None
+    crossings: tuple[int, ...]  # items per class that crossed the counting line since the gateway started
 
 
 class LiveState:
@@ -50,6 +52,7 @@ class LiveState:
         self._queued_frames = 0
         self._dropped_frames = 0
         self._last_batch_wall_time_s: float | None = None
+        self._counter = LineCounter()
 
     def add_batch(self, *, batch: Batch, received_wall_time_s: float) -> None:
         """Take in one batch from the phone.
@@ -69,6 +72,8 @@ class LiveState:
             self._model = batch.model
             self._class_names = batch.class_names
             for frame in batch.frames:
+                if frame.frame_id not in self._recent:  # a re-sent batch must not move the tracker twice
+                    self._counter.update(frame=frame)
                 self._recent[frame.frame_id] = frame
             while len(self._recent) > self._history_frames:
                 self._recent.popitem(last=False)
@@ -102,4 +107,5 @@ class LiveState:
                 queued_frames=self._queued_frames,
                 dropped_frames=self._dropped_frames,
                 last_batch_wall_time_s=self._last_batch_wall_time_s,
+                crossings=self._counter.crossings(class_count=len(self._class_names)),
             )

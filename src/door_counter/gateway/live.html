@@ -44,6 +44,8 @@
     <div style="color: var(--muted)">items in view now</div>
     <div class="big" id="items">-</div>
     <dl id="classes"></dl>
+    <h2>crossed the line</h2>
+    <dl id="crossings"><dt>-</dt><dd></dd></dl>
     <h2>phone</h2>
     <dl>
       <dt>frames per second</dt><dd id="fps">-</dd>
@@ -101,7 +103,7 @@
   }
 
   // Draw the picture rotated upright (clockwise), then masks, boxes and labels (0..1 of the upright frame).
-  function draw(img, rotationDeg, items, names) {
+  function draw(img, rotationDeg, items, names, lineX) {
     const swapped = rotationDeg === 90 || rotationDeg === 270;
     canvas.width = swapped ? img.height : img.width;
     canvas.height = swapped ? img.width : img.height;
@@ -134,6 +136,24 @@
       ctx.fillStyle = "#000";
       ctx.fillText(label, x + 4, Math.max(15, y - 6));
     }
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.beginPath(); ctx.moveTo(lineX * w, 0); ctx.lineTo(lineX * w, h); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function showCrossings(crossings, names) {
+    const dl = document.getElementById("crossings");
+    dl.replaceChildren();
+    crossings.forEach((n, id) => {
+      const dt = document.createElement("dt");
+      const sw = document.createElement("span");
+      sw.className = "swatch"; sw.style.background = rgb(colour(id), 1);
+      dt.append(sw, names[id] || ("class " + id));
+      const dd = document.createElement("dd");
+      dd.textContent = String(n);
+      dl.append(dt, dd);
+    });
   }
 
   function showClassCounts(items, names) {
@@ -171,6 +191,7 @@
         showClassCounts(s.latest_frame.items, s.class_names);
       }
       if (s.model) { setText("model", s.model.replace("models/", "")); }
+      if (s.crossings.length) { showCrossings(s.crossings, s.class_names); }
       if (s.health) {
         const hl = s.health;
         setText("fps", hl.fps.toFixed(1));
@@ -191,7 +212,7 @@
         loading = true;
         const img = new Image();
         img.onload = () => {
-          draw(img, s.preview.rotation_deg, s.preview_items, s.class_names);
+          draw(img, s.preview.rotation_deg, s.preview_items, s.class_names, s.line_x);
           shownPreviewId = s.preview.frame_id;
           loading = false;
         };

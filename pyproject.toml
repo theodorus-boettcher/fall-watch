@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "roboflow>=1.7.1",
     "supervision>=0.30.9",
+    "trackers>=2.6.1",
 ]
 
 [project.scripts]

@@ -23,6 +23,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from door_counter.gateway.capture import Capture, CaptureError
+from door_counter.gateway.line_counter import DEFAULT_LINE_X
 from door_counter.gateway.live_state import LiveSnapshot, LiveState
 from door_counter.gateway.messages import MessageError, parse_batch
 
@@ -55,6 +56,8 @@ def snapshot_to_json(*, snapshot: LiveSnapshot, now_wall_time_s: float) -> dict[
         "queued_frames": snapshot.queued_frames,
         "dropped_frames": snapshot.dropped_frames,
         "seconds_since_last_batch": None if last is None else now_wall_time_s - last,
+        "crossings": list(snapshot.crossings),
+        "line_x": DEFAULT_LINE_X,
     }
 
 
