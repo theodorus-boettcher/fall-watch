@@ -1,0 +1,80 @@
+[
+  {
+    "model": "n416-coco-mix2",
+    "set": "plant",
+    "pictures": 929,
+    "mask_map50": 0.322,
+    "mask_map50_95": 0.184,
+    "mask_map50_per_material": {
+      "cardboard": 0.495,
+      "soft plastic": 0.409,
+      "rigid plastic": 0.29,
+      "metal": 0.095
+    }
+  },
+  {
+    "model": "n416-coco-mix2",
+    "set": "home",
+    "pictures": 53,
+    "mask_map50": 0.92,
+    "mask_map50_95": 0.843,
+    "mask_map50_per_material": {
+      "cardboard": 0.995,
+      "soft plastic": 0.775,
+      "rigid plastic": 0.924,
+      "metal": 0.986
+    }
+  },
+  {
+    "model": "n416-coco-mix2",
+    "set": "taco",
+    "pictures": 100,
+    "mask_map50": 0.328,
+    "mask_map50_95": 0.21,
+    "mask_map50_per_material": {
+      "cardboard": 0.492,
+      "soft plastic": 0.296,
+      "rigid plastic": 0.299,
+      "metal": 0.225
+    }
+  },
+  {
+    "model": "n640-coco-mix2",
+    "set": "plant",
+    "pictures": 929,
+    "mask_map50": 0.327,
+    "mask_map50_95": 0.191,
+    "mask_map50_per_material": {
+      "cardboard": 0.493,
+      "soft plastic": 0.403,
+      "rigid plastic": 0.263,
+      "metal": 0.151
+    }
+  },
+  {
+    "model": "n640-coco-mix2",
+    "set": "home",
+    "pictures": 53,
+    "mask_map50": 0.92,
+    "mask_map50_95": 0.849,
+    "mask_map50_per_material": {
+      "cardboard": 0.995,
+      "soft plastic": 0.775,
+      "rigid plastic": 0.929,
+      "metal": 0.983
+    }
+  },
+  {
+    "model": "n640-coco-mix2",
+    "set": "taco",
+    "pictures": 100,
+    "mask_map50": 0.314,
+    "mask_map50_95": 0.198,
+    "mask_map50_per_material": {
+      "cardboard": 0.235,
+      "soft plastic": 0.418,
+      "rigid plastic": 0.378,
+      "metal": 0.222
+    }
+  }
+]

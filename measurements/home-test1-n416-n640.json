@@ -1,0 +1,102 @@
+[
+  {
+    "model": "n416-coco-mix2",
+    "scene": "test-1",
+    "pictures": 46,
+    "exact_pct": 100.0,
+    "mean_abs_error": 0.0,
+    "mean_abs_error_per_material": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mean_counted_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ],
+    "mean_true_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "model": "n416-coco-mix2",
+    "scene": "all",
+    "pictures": 46,
+    "exact_pct": 100.0,
+    "mean_abs_error": 0.0,
+    "mean_abs_error_per_material": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mean_counted_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ],
+    "mean_true_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "model": "n640-coco-mix2",
+    "scene": "test-1",
+    "pictures": 46,
+    "exact_pct": 0.0,
+    "mean_abs_error": 0.3695652173913043,
+    "mean_abs_error_per_material": [
+      0.0,
+      0.0,
+      0.0,
+      1.478
+    ],
+    "mean_counted_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      2.478
+    ],
+    "mean_true_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ]
+  },
+  {
+    "model": "n640-coco-mix2",
+    "scene": "all",
+    "pictures": 46,
+    "exact_pct": 0.0,
+    "mean_abs_error": 0.3695652173913043,
+    "mean_abs_error_per_material": [
+      0.0,
+      0.0,
+      0.0,
+      1.478
+    ],
+    "mean_counted_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      2.478
+    ],
+    "mean_true_per_material": [
+      0.0,
+      1.0,
+      0.0,
+      1.0
+    ]
+  }
+]
