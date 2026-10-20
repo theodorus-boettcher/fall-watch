@@ -77,6 +77,7 @@ TRASHNET_NAME = re.compile(r"^(cardboard|glass|metal|paper|plastic|trash)\d+")
 ZEROWASTE_S_NAME = re.compile(r"^\d\d_frame_\d{6}$")
 DECOY_IOU = 0.5  # a material outline overlapping a decoy this much is the same item, and SAM 3 was unsure
 HUMAN_BOX_IOU = 0.5  # an outline's box matching a WaRP box this much is that item
+MAX_PLANT_BOX_SHARE = 0.5  # SAM 3 sometimes outlines the whole belt as a "plastic tray"
 ROBOFLOW_SUFFIX = re.compile(r"_(jpg|jpeg|png)\.rf\.[0-9a-f]+$", re.IGNORECASE)
 
 
@@ -219,7 +220,8 @@ def box_iou(*, a: Box, b: Box) -> float:
 def clean_plant_lines(*, lines: Sequence[str], human_boxes: Sequence[tuple[int | None, Box]] = ()) -> list[str]:
     """Clean SAM 3 labels of a plant picture prompted with decoys.
 
-    Material outlines that overlap a decoy outline go (SAM 3 was unsure what the item is), and so do the decoys.
+    Material outlines that overlap a decoy outline go (SAM 3 was unsure what the item is), and so do the decoys
+    and outlines whose box covers more than ``MAX_PLANT_BOX_SHARE`` of the picture (the belt).
     Where a human box matches an outline, the box's material wins; None removes the outline. Then duplicates.
 
     Args:
@@ -240,6 +242,8 @@ def clean_plant_lines(*, lines: Sequence[str], human_boxes: Sequence[tuple[int |
             continue
         xy = np.asarray(parts[1:], dtype=np.float64).reshape(-1, 2)
         box: Box = (*xy.min(axis=0), *xy.max(axis=0))
+        if (box[2] - box[0]) * (box[3] - box[1]) > MAX_PLANT_BOX_SHARE:
+            continue
         match = max(human_boxes, key=lambda hb: box_iou(a=box, b=hb[1]), default=None)
         if match is not None and box_iou(a=box, b=match[1]) >= HUMAN_BOX_IOU:
             if match[0] is None:

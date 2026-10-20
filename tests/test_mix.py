@@ -54,5 +54,6 @@ def test_plant_cleaning_drops_decoy_items_and_takes_the_human_material() -> None
     carton_as_box = square(cls=CARDBOARD, x1=0.75, y1=0.1, x2=0.95, y2=0.3)
     bag = square(cls=SOFT, x1=0.1, y1=0.6, x2=0.4, y2=0.95)
     boxes = [(RIGID, (0.5, 0.5, 0.7, 0.9)), (None, (0.76, 0.1, 0.95, 0.3))]
-    kept = clean_plant_lines(lines=[paper_as_film, paper, bottle_as_bag, carton_as_box, bag], human_boxes=boxes)
+    belt = square(cls=RIGID, x1=0.0, y1=0.0, x2=1.0, y2=1.0)
+    kept = clean_plant_lines(lines=[paper_as_film, paper, bottle_as_bag, carton_as_box, bag, belt], human_boxes=boxes)
     assert kept == [bag, f"{RIGID} " + bottle_as_bag.split(" ", 1)[1]]
