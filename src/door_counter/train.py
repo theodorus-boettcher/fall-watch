@@ -12,7 +12,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import yaml
-from ultralytics.models import YOLO
+from ultralytics.models import YOLO, YOLOE
+from ultralytics.models.yolo.yoloe import YOLOEPESegTrainer
 
 DEFAULT_BASE_MODEL = "yolo26n-seg.pt"
 DEFAULT_IMAGE_SIZE_PX = 320  # what the phone runs
@@ -48,7 +49,7 @@ class Scores:
 
 
 def train(*, config: TrainConfig) -> Path:
-    """Fine-tune the base model on the dataset.
+    """Fine-tune the base model (YOLO26 or YOLOE-26) on the dataset.
 
     Args:
         config: the run settings.
@@ -59,8 +60,13 @@ def train(*, config: TrainConfig) -> Path:
     Raises:
         FileNotFoundError: if training finished without writing best weights.
     """
-    model = YOLO(model=config.base_model)
+    if Path(config.base_model).name.startswith("yoloe"):  # YOLOE builds the class head from the class names' text
+        model: YOLO | YOLOE = YOLOE(model=config.base_model)
+        extra: dict[str, object] = {"trainer": YOLOEPESegTrainer}
+    else:
+        model, extra = YOLO(model=config.base_model), {}
     model.train(
+        **extra,
         data=str(config.data_yaml),
         imgsz=config.image_size_px,
         epochs=config.epochs,
