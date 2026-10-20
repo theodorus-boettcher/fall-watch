@@ -11,6 +11,9 @@ hand filter moved out stay out); delete its folder to build it again:
   (Universe ``trash_segmentation_train``) take those instead.
 - ``bottle``: Universe ``bottle-bokxa`` (bottles, cans, polystyrene), one copy of each augmented picture.
 - ``taco``: TACO litter photos, categories mapped to materials (``TACO_MATERIALS``).
+- ``zerowaste-s`` and ``warp``: unlabelled plant pictures (ZeroWaste-s, WaRP-D) with SAM 3 labels from the same
+  export, prompted with decoys for paper, cartons, glass and food. WaRP's human boxes set the material of the
+  outlines they match.
 
 Plain numpy and OpenCV (no ``train`` group needed). Example:
 ``uv run python -m door_counter.mix --rf-export data/rf-export --out data/mix-v2``.
@@ -32,6 +35,7 @@ import yaml
 from door_counter.zerowaste import CLASS_NAMES
 
 DROP = -1  # in a class map: the whole picture is left out (its labels would teach something wrong)
+DECOY = -2  # kept through remapping so plant cleaning can drop material outlines of decoy items; never written
 OURS = {name: i for i, name in enumerate(CLASS_NAMES)}
 CARDBOARD, SOFT, RIGID, METAL = (OURS[n] for n in CLASS_NAMES)
 TACO_MATERIALS: dict[str, int | None] = {
@@ -58,7 +62,7 @@ UNIVERSE_MATERIALS: dict[str, int | None] = {
     "plastic": RIGID,  # trash_segmentation_train: TrashNet's plastic class, bottles and tubs
     "paper": None, "glass": None,
     "trash": DROP,  # mostly crisp packets and wrappers mixed with other things
-    "soft plastic": SOFT, "rigid plastic": RIGID,
+    "soft plastic": SOFT, "rigid plastic": RIGID, "decoy": DECOY,
 }
 SUPPORT_RIGHT_EDGE = 0.14  # the phone support fills the left 12% of the upright home picture
 SUPPORT_SHARE = 0.7  # an outline this much on the support is the support, not an item
@@ -70,6 +74,9 @@ MAX_SIDE_PX = 960
 JPEG_QUALITY = 90
 HOME_NAME = re.compile(r"^\d{13}_\d{8}")  # <session>_<frame> from the capture
 TRASHNET_NAME = re.compile(r"^(cardboard|glass|metal|paper|plastic|trash)\d+")
+ZEROWASTE_S_NAME = re.compile(r"^\d\d_frame_\d{6}$")
+DECOY_IOU = 0.5  # a material outline overlapping a decoy this much is the same item, and SAM 3 was unsure
+HUMAN_BOX_IOU = 0.5  # an outline's box matching a WaRP box this much is that item
 ROBOFLOW_SUFFIX = re.compile(r"_(jpg|jpeg|png)\.rf\.[0-9a-f]+$", re.IGNORECASE)
 
 
@@ -162,6 +169,86 @@ def drop_duplicates(*, lines: Sequence[str]) -> list[str]:
     return [line for line, _ in kept]
 
 
+def warp_material(*, name: str) -> int | None:
+    """Our material for a WaRP category.
+
+    Args:
+        name: a WaRP class name, e.g. ``bottle-blue5l-full``.
+
+    Returns:
+        Our class index, or None for drink cartons and glass (not ours).
+    """
+    if name == "cans":
+        return METAL
+    if name == "detergent-box":
+        return CARDBOARD
+    if name.endswith("-cardboard") or name.startswith("glass-"):  # juice and milk cartons, glass bottles
+        return None
+    return RIGID  # plastic bottles, detergent bottles, canisters
+
+
+Box = tuple[float, float, float, float]  # left, top, right, bottom, 0 to 1
+
+
+def read_warp_boxes(*, label: Path, names: Sequence[str]) -> list[tuple[int | None, Box]]:
+    """Read one WaRP-D label file (YOLO boxes).
+
+    Args:
+        label: the ``.txt`` file.
+        names: WaRP's class names, in index order.
+
+    Returns:
+        Our material (or None) and the box, per labelled item.
+    """
+    boxes = []
+    for line in label.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if len(parts) == 5:
+            x, y, w, h = (float(v) for v in parts[1:])
+            boxes.append((warp_material(name=names[int(parts[0])]), (x - w / 2, y - h / 2, x + w / 2, y + h / 2)))
+    return boxes
+
+
+def box_iou(*, a: Box, b: Box) -> float:
+    """Overlap of two boxes, intersection over union."""
+    inter = max(0.0, min(a[2], b[2]) - max(a[0], b[0])) * max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def clean_plant_lines(*, lines: Sequence[str], human_boxes: Sequence[tuple[int | None, Box]] = ()) -> list[str]:
+    """Clean SAM 3 labels of a plant picture prompted with decoys.
+
+    Material outlines that overlap a decoy outline go (SAM 3 was unsure what the item is), and so do the decoys.
+    Where a human box matches an outline, the box's material wins; None removes the outline. Then duplicates.
+
+    Args:
+        lines: remapped label lines, decoys still in (class ``DECOY``).
+        human_boxes: WaRP's labelled items, if any.
+
+    Returns:
+        The lines to keep, largest outline first.
+    """
+    decoys = [outline_mask(line=line) for line in lines if int(line.split()[0]) == DECOY]
+    kept = []
+    for line in lines:
+        parts = line.split()
+        if int(parts[0]) == DECOY:
+            continue
+        mask = outline_mask(line=line)
+        if any((mask & d).sum() > DECOY_IOU * (mask | d).sum() for d in decoys):
+            continue
+        xy = np.asarray(parts[1:], dtype=np.float64).reshape(-1, 2)
+        box: Box = (*xy.min(axis=0), *xy.max(axis=0))
+        match = max(human_boxes, key=lambda hb: box_iou(a=box, b=hb[1]), default=None)
+        if match is not None and box_iou(a=box, b=match[1]) >= HUMAN_BOX_IOU:
+            if match[0] is None:
+                continue
+            line = " ".join([str(match[0]), *parts[1:]])
+        kept.append(line)
+    return drop_duplicates(lines=kept)
+
+
 def clean_home_lines(*, lines: Sequence[str]) -> list[str]:
     """Drop outlines on the phone support, then duplicates and parts of the same item.
 
@@ -197,7 +284,7 @@ def link_or_copy(*, source: Path, target: Path) -> None:
 
 def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int | None],
                keep: Callable[[Path], bool] = lambda _: True,
-               clean: Callable[[Sequence[str]], list[str] | None] | None = None) -> int:
+               clean: Callable[[Sequence[str], Path], list[str] | None] | None = None) -> int:
     """Copy one YOLO split (``images/`` next to ``labels/``) with our classes.
 
     Args:
@@ -205,7 +292,7 @@ def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int |
         out_dir: the target split folder; gets ``images/`` and ``labels/``.
         class_map: source class index -> ours.
         keep: which pictures to take.
-        clean: optional extra pass over each picture's remapped lines; None leaves the picture out.
+        clean: optional extra pass over each picture's remapped lines (and its path); None leaves it out.
 
     Returns:
         Pictures written.
@@ -220,7 +307,7 @@ def copy_split(*, images_dir: Path, out_dir: Path, class_map: Mapping[int, int |
         if lines is None:
             continue
         if clean is not None:
-            lines = clean(lines)
+            lines = clean(lines, image)
             if lines is None:
                 continue
         link_or_copy(source=image, target=out_dir / "images" / image.name)
@@ -329,6 +416,9 @@ def main() -> None:
     parser.add_argument("--trash-seg", type=Path, default=Path("data/universe/trash_segmentation_train"))
     parser.add_argument("--bottle", type=Path, default=Path("data/universe/bottle-bokxa"))
     parser.add_argument("--taco", type=Path, default=Path("data/taco/TACO/data"))
+    parser.add_argument("--warp", type=Path, default=Path("data/warp/Warp-D"), help="WaRP-D, for its human boxes")
+    parser.add_argument("--uploads", type=Path, action="append",
+                        help="folders of the plant pictures as uploaded (default: data/upload-plant, -zws, -probe)")
     parser.add_argument("--synth", type=Path, help="copy-paste scenes (door_counter.copy_paste output)")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
@@ -354,12 +444,12 @@ def main() -> None:
         counts[f"home {split}"] = copy_split(
             images_dir=images_dir, out_dir=out / "home" / split, class_map=ours,
             keep=lambda p: HOME_NAME.match(source_stem(name=p.name)) is not None,
-            clean=lambda lines: clean_home_lines(lines=lines))
+            clean=lambda lines, _: clean_home_lines(lines=lines))
         counts[f"trashnet sam3 {split}"] = copy_split(
             images_dir=images_dir, out_dir=out / "trashnet-sam3" / "train", class_map=ours,
             keep=lambda p: (TRASHNET_NAME.match(source_stem(name=p.name)) is not None
                             and source_stem(name=p.name) not in human),
-            clean=lambda lines: None if sum(line.split()[0] == str(CARDBOARD) for line in lines) > MAX_CARDBOARD_PIECES
+            clean=lambda lines, _: None if sum(line.split()[0] == str(CARDBOARD) for line in lines) > MAX_CARDBOARD_PIECES
             else drop_duplicates(lines=lines))
     train += [out / "home" / "train" / "images", out / "trashnet-sam3" / "train" / "images"]
     val.append(out / "home" / "valid" / "images")
@@ -383,6 +473,26 @@ def main() -> None:
         counts["taco"], counts["taco left out"] = convert_taco(taco_data=args.taco, out_dir=out / "taco")
     train.append(out / "taco" / "train" / "images")
     val.append(out / "taco" / "valid" / "images")
+
+    upload_dirs = args.uploads or [Path("data/upload-plant"), Path("data/upload-zws"), Path("data/upload-probe")]
+    uploaded = {p.stem for d in upload_dirs for p in d.rglob("*.jpg")}  # ZeroWaste-f shares the name pattern
+    warp_names = (args.warp / "classes.txt").read_text(encoding="utf-8").split()
+    warp_labels = {p.stem: p for split in ("train", "test") for p in (args.warp / split / "labels").glob("*.txt")}
+    build_plant = not (out / "zerowaste-s").is_dir()  # zerowaste-s and warp are built together: delete both to redo
+    for split in ("train", "valid"):
+        images_dir = args.rf_export / split / "images"
+        if not build_plant or not images_dir.is_dir():
+            continue
+        counts[f"zerowaste-s {split}"] = copy_split(
+            images_dir=images_dir, out_dir=out / "zerowaste-s" / "train", class_map=ours,
+            keep=lambda p: (stem := source_stem(name=p.name)) in uploaded and ZEROWASTE_S_NAME.match(stem) is not None,
+            clean=lambda lines, _: clean_plant_lines(lines=lines))
+        counts[f"warp {split}"] = copy_split(
+            images_dir=images_dir, out_dir=out / "warp" / "train", class_map=ours,
+            keep=lambda p: (stem := source_stem(name=p.name)) in uploaded and stem in warp_labels,
+            clean=lambda lines, image: clean_plant_lines(lines=lines, human_boxes=read_warp_boxes(
+                label=warp_labels[source_stem(name=image.name)], names=warp_names)))
+    train += [d / "train" / "images" for d in (out / "zerowaste-s", out / "warp") if d.is_dir()]
 
     if args.synth is not None:
         train.append(args.synth / "images")

@@ -2,8 +2,8 @@
 
 import pytest
 
-from door_counter.mix import (DROP, METAL, RIGID, SOFT, class_map_from_names, clean_home_lines, drop_duplicates,
-                              remap_lines, source_stem)
+from door_counter.mix import (CARDBOARD, DECOY, DROP, METAL, RIGID, SOFT, class_map_from_names, clean_home_lines,
+                              clean_plant_lines, drop_duplicates, remap_lines, source_stem, warp_material)
 
 
 def square(*, cls: int, x1: float, y1: float, x2: float, y2: float) -> str:
@@ -40,3 +40,19 @@ def test_a_lid_inside_its_can_is_the_same_item() -> None:
     lid = square(cls=METAL, x1=0.55, y1=0.32, x2=0.68, y2=0.58)
     bottle_on_the_can = square(cls=RIGID, x1=0.55, y1=0.32, x2=0.68, y2=0.58)
     assert drop_duplicates(lines=[lid, can, bottle_on_the_can]) == [can, bottle_on_the_can]
+
+
+def test_warp_categories_map_to_materials() -> None:
+    assert [warp_material(name=n) for n in ("bottle-blue5l-full", "cans", "detergent-box", "milk-cardboard",
+                                            "glass-green", "canister")] == [RIGID, METAL, CARDBOARD, None, None, RIGID]
+
+
+def test_plant_cleaning_drops_decoy_items_and_takes_the_human_material() -> None:
+    paper_as_film = square(cls=SOFT, x1=0.1, y1=0.1, x2=0.3, y2=0.3)
+    paper = square(cls=DECOY, x1=0.1, y1=0.1, x2=0.31, y2=0.3)
+    bottle_as_bag = square(cls=SOFT, x1=0.5, y1=0.5, x2=0.7, y2=0.9)
+    carton_as_box = square(cls=CARDBOARD, x1=0.75, y1=0.1, x2=0.95, y2=0.3)
+    bag = square(cls=SOFT, x1=0.1, y1=0.6, x2=0.4, y2=0.95)
+    boxes = [(RIGID, (0.5, 0.5, 0.7, 0.9)), (None, (0.76, 0.1, 0.95, 0.3))]
+    kept = clean_plant_lines(lines=[paper_as_film, paper, bottle_as_bag, carton_as_box, bag], human_boxes=boxes)
+    assert kept == [bag, f"{RIGID} " + bottle_as_bag.split(" ", 1)[1]]

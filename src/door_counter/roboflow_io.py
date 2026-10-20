@@ -3,7 +3,8 @@
 The key lives in the repo's git-ignored ``.env`` as ``ROBOFLOW_API_KEY=...`` and is never printed.
 Run ``uv run python -m door_counter.roboflow_io`` to create (or find) the project,
 ``... --upload data/zerowaste-960`` to upload a converted dataset (see ``door_counter.zerowaste``),
-``... --home-clips data/captures`` to upload the home clips and start SAM 3 labeling on each, and
+``... --home-clips data/captures`` to upload the home clips and start SAM 3 labeling on each,
+``... --plant data/upload-plant`` to do the same for mixed plant pictures (all four materials' prompts), and
 ``... --job <id>`` to see how a labeling job is doing.
 """
 
@@ -11,6 +12,7 @@ import argparse
 import time
 import zipfile
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import roboflow
@@ -19,7 +21,6 @@ from roboflow.core.project import Project
 
 WORKSPACE = "<workspace>"
 PROJECT_ID = "sorting-line"
-PROJECT_NAME = "sorting-line"
 PROJECT_TYPE = "instance-segmentation"
 ANNOTATION_GROUP = "materials"
 KEY_NAME = "ROBOFLOW_API_KEY"
@@ -32,7 +33,19 @@ HOME_PROMPTS = {
     "rigid plastic": ("plastic bottle", "plastic container", "plastic cup", "plastic tray", "styrofoam"),
     "metal": ("can", "metal can", "aluminium foil", "metal lid", "metal object"),
 }  # the class comes from the clip, so broad prompts are safe: whatever SAM 3 finds in a metal clip is metal
+# Plant pictures mix materials, so each prompt names its own material; vague prompts ("metal object") are left out.
+# On a cluttered belt SAM 3 calls paper "plastic film", so decoy prompts claim paper, cartons, glass and food;
+# their outlines are dropped later (door_counter.mix).
+DECOY = "decoy"
+PLANT_PROMPTS = {
+    "cardboard": "cardboard", "cardboard box": "cardboard", "piece of cardboard": "cardboard",
+    "plastic bag": "soft plastic", "plastic film": "soft plastic",
+    "plastic bottle": "rigid plastic", "plastic container": "rigid plastic", "plastic cup": "rigid plastic",
+    "plastic tray": "rigid plastic", "can": "metal", "aluminium foil": "metal",
+    "paper": DECOY, "newspaper": DECOY, "drink carton": DECOY, "glass bottle": DECOY, "food": DECOY,
+}
 AUTOLABEL_MODEL = "sam3-polygon"
+UPLOAD_WORKERS = 4
 VERSION_WAIT_S = 30.0
 VERSION_WAIT_TRIES = 60
 AUTOLABEL_CONFIDENCE = 0.4
@@ -65,11 +78,12 @@ def load_api_key(*, env_path: Path) -> str:
     raise MissingApiKeyError(f"{KEY_NAME} not set in {env_path}")
 
 
-def get_or_create_project(*, api_key: str) -> Project:
-    """Open the sorting-line project, creating it (private) on first use.
+def get_or_create_project(*, api_key: str, project_id: str = PROJECT_ID) -> Project:
+    """Open the sorting-line project (or another one), creating it (private) on first use.
 
     Args:
         api_key: the Roboflow API key.
+        project_id: e.g. a separate project for checking SAM 3 on the plant test pictures.
 
     Returns:
         The project.
@@ -78,10 +92,10 @@ def get_or_create_project(*, api_key: str) -> Project:
         RuntimeError: if Roboflow refuses to create it.
     """
     workspace = roboflow.Roboflow(api_key=api_key).workspace(the_workspace=WORKSPACE)
-    if any(name.split("/")[-1] == PROJECT_ID for name in workspace.projects()):
-        return workspace.project(project_id=PROJECT_ID)
+    if any(name.split("/")[-1] == project_id for name in workspace.projects()):
+        return workspace.project(project_id=project_id)
     return workspace.create_project(
-        project_name=PROJECT_NAME,
+        project_name=project_id,
         project_type=PROJECT_TYPE,
         project_license="Private",
         annotation=ANNOTATION_GROUP,
@@ -183,14 +197,19 @@ def upload_clip(*, project: Project, clip_dir: Path, every: int, source: str) ->
         The batch name.
     """
     batch_name = f"{source}-{clip_dir.name}"
-    failed = 0
-    for i, image in enumerate(sorted(clip_dir.glob("*.jpg"))[::every]):
+
+    def upload_one(i: int, image: Path) -> bool:
         try:
             project.upload(image_path=str(image), split="valid" if i % VALID_EVERY == VALID_EVERY - 1 else "train",
                            batch_name=batch_name, tag_names=[source, clip_dir.name], num_retry_uploads=3)
         except ImageUploadError as e:  # Roboflow sometimes answers 500; one lost picture must not stop the clip
-            failed += 1
             print(f"{image.name}: upload failed ({e})", flush=True)
+            return False
+        return True
+
+    images = sorted(clip_dir.glob("*.jpg"))[::every]
+    with ThreadPoolExecutor(max_workers=UPLOAD_WORKERS) as pool:
+        failed = sum(not ok for ok in pool.map(upload_one, range(len(images)), images))
     if failed:
         print(f"{clip_dir.name}: {failed} pictures not uploaded; running again uploads them (duplicates are skipped)")
     return batch_name
@@ -239,13 +258,13 @@ def export_version(*, project: Project, out_dir: Path) -> Path:
     raise TimeoutError(f"version {number} was not ready after {VERSION_WAIT_TRIES * VERSION_WAIT_S} s")
 
 
-def start_autolabel(*, project: Project, batch_name: str, material: str) -> dict[str, object]:
-    """Start SAM 3 Auto Label on one uploaded batch, with the material's text prompts.
+def start_autolabel(*, project: Project, batch_name: str, ontology: dict[str, str]) -> dict[str, object]:
+    """Start SAM 3 Auto Label on one uploaded batch, with text prompts.
 
     Args:
         project: the Roboflow project.
         batch_name: the batch made by ``upload_clip``.
-        material: the clip's material; every outline found gets this class.
+        ontology: text prompt -> material it labels.
 
     Returns:
         Roboflow's reply with ``jobId``.
@@ -258,7 +277,7 @@ def start_autolabel(*, project: Project, batch_name: str, material: str) -> dict
     if batch_id is None:
         raise LookupError(f"batch {batch_name!r} not found among {[b.get('name') for b in batches]}")
     result: dict[str, object] = project.autolabel(
-        batch_id, model=AUTOLABEL_MODEL, ontology={prompt: material for prompt in HOME_PROMPTS[material]},
+        batch_id, model=AUTOLABEL_MODEL, ontology=ontology,
         confidence=AUTOLABEL_CONFIDENCE, run_nms=True,  # several prompts often outline the same item
     )
     return result
@@ -271,6 +290,8 @@ def main() -> None:
     parser.add_argument("--upload", type=Path, help="converted dataset folder to upload")
     parser.add_argument("--batch", default="zerowaste-f", help="upload batch name")
     parser.add_argument("--home-clips", type=Path, help="capture folder: upload one-material clips, start SAM 3")
+    parser.add_argument("--plant", type=Path, help="folder of plant picture sets: upload each, start SAM 3")
+    parser.add_argument("--project", default=PROJECT_ID, help="Roboflow project id")
     parser.add_argument("--every", type=int, default=3, help="upload one home picture in this many")
     parser.add_argument("--source", default="home", help="batch and tag prefix for --home-clips, e.g. trashnet")
     parser.add_argument("--job", help="show the status of an auto-label job")
@@ -280,7 +301,7 @@ def main() -> None:
     api_key = load_api_key(env_path=args.env)
     if args.upload is not None:
         print("upload status:", upload_dataset(api_key=api_key, dataset_dir=args.upload, batch_name=args.batch))
-    project = get_or_create_project(api_key=api_key)
+    project = get_or_create_project(api_key=api_key, project_id=args.project)
     if args.home_clips is not None:
         for clip_dir in sorted(d for d in args.home_clips.iterdir() if d.is_dir()):
             material = material_of_clip(clip=clip_dir.name)
@@ -288,8 +309,14 @@ def main() -> None:
                 print(f"{clip_dir.name}: skipped (not a one-material clip)", flush=True)
                 continue
             batch_name = upload_clip(project=project, clip_dir=clip_dir, every=args.every, source=args.source)
-            job = start_autolabel(project=project, batch_name=batch_name, material=material)
+            job = start_autolabel(project=project, batch_name=batch_name,
+                                  ontology={prompt: material for prompt in HOME_PROMPTS[material]})
             print(f"{clip_dir.name}: uploaded as {batch_name}, SAM 3 job {job.get('jobId')}", flush=True)
+    if args.plant is not None:
+        for set_dir in sorted(d for d in args.plant.iterdir() if d.is_dir()):
+            batch_name = upload_clip(project=project, clip_dir=set_dir, every=1, source="plant")
+            job = start_autolabel(project=project, batch_name=batch_name, ontology=PLANT_PROMPTS)
+            print(f"{set_dir.name}: uploaded as {batch_name}, SAM 3 job {job.get('jobId')}", flush=True)
     if args.job is not None:
         print(project.autolabel_job(args.job))
     for job_id in args.accept:
