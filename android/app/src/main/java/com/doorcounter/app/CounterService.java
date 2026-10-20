@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class CounterService extends Service {
     private static final String TAG = "DoorCounter";
     private static final int NOTIFICATION_ID = 1;
-    private static final String MODEL_NAME = "models/sort-v1";
     private static final float MIN_SCORE = 0.25f;
     private static final int TARGET_PREVIEW_WIDTH_PX = 640;
     private static final int CAMERA_BUFFER_COUNT = 3;
@@ -74,14 +73,14 @@ public final class CounterService extends Service {
         settings = Settings.load(this);
         Log.i(TAG, "starting, " + settings);
         try {
-            gateway = new GatewayClient(settings.gatewayUrl, System.currentTimeMillis(), MODEL_NAME,
-                    readLabels(MODEL_NAME + ".labels"));
+            gateway = new GatewayClient(settings.gatewayUrl, System.currentTimeMillis(), settings.modelName,
+                    readLabels(settings.modelName + ".labels"));
         } catch (MalformedURLException e) {
             Log.e(TAG, "bad gateway URL " + settings.gatewayUrl, e);
             stopSelf();
             return;
         } catch (IOException e) {
-            Log.e(TAG, "class names missing for " + MODEL_NAME, e);
+            Log.e(TAG, "class names missing for " + settings.modelName, e);
             stopSelf();
             return;
         }
@@ -166,7 +165,7 @@ public final class CounterService extends Service {
     /** Load the model (detector thread). Stops the service if the model is missing. */
     private void loadDetector() {
         try {
-            detector = new Detector(getAssets(), MODEL_NAME, settings.threadCount);
+            detector = new Detector(getAssets(), settings.modelName, settings.threadCount);
         } catch (IllegalStateException e) {
             Log.e(TAG, "model load failed", e);
             stopSelf();

@@ -12,7 +12,7 @@ import android.util.Log;
  * can reach it. Example: {@code adb shell am broadcast -n com.doorcounter.app/.ConfigReceiver
  * --ei rotation 180 --ez preview true}. Extras left out keep their current value. Extras:
  * {@code rotation} (int), {@code gateway} (string), {@code preview} (boolean), {@code threads} (int),
- * {@code motion_gate} (boolean).
+ * {@code motion_gate} (boolean), {@code model} (string, e.g. {@code models/sort-v1}).
  */
 public final class ConfigReceiver extends BroadcastReceiver {
     private static final String TAG = "DoorConfig";
@@ -26,7 +26,8 @@ public final class ConfigReceiver extends BroadcastReceiver {
                     intent.hasExtra("gateway") ? intent.getStringExtra("gateway") : current.gatewayUrl,
                     intent.getBooleanExtra("preview", current.isPreviewEnabled),
                     intent.getIntExtra("threads", current.threadCount),
-                    intent.getBooleanExtra("motion_gate", current.isMotionGateEnabled));
+                    intent.getBooleanExtra("motion_gate", current.isMotionGateEnabled),
+                    intent.hasExtra("model") ? intent.getStringExtra("model") : current.modelName);
         } catch (IllegalArgumentException e) {
             report("error: " + e.getMessage());
             return;

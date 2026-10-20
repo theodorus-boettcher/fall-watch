@@ -63,6 +63,7 @@ UNIVERSE_MATERIALS: dict[str, int | None] = {
 SUPPORT_RIGHT_EDGE = 0.14  # the phone support fills the left 12% of the upright home picture
 SUPPORT_SHARE = 0.7  # an outline this much on the support is the support, not an item
 DUPLICATE_IOU = 0.6
+PART_SHARE = 0.8
 MAX_CARDBOARD_PIECES = 4  # SAM 3 cuts a TrashNet box close-up into its panels; such pictures are left out
 MASK_SIZE_PX = (160, 120)  # outlines are compared on a small raster
 MAX_SIDE_PX = 960
@@ -138,26 +139,43 @@ def outline_mask(*, line: str) -> npt.NDArray[np.bool_]:
     return mask.astype(bool)
 
 
+def drop_duplicates(*, lines: Sequence[str]) -> list[str]:
+    """Keep one outline per item: SAM 3 often outlines an item twice, or a part of it again.
+
+    Several prompts can outline the same item (overlap above ``DUPLICATE_IOU``), and "metal lid" outlines
+    a can's lid inside the outline of the whole can (``PART_SHARE`` of the smaller one inside the larger).
+
+    Args:
+        lines: SAM 3 label lines of one picture.
+
+    Returns:
+        The lines to keep, largest outline first.
+    """
+    masks = [(line, outline_mask(line=line)) for line in lines]
+    kept: list[tuple[str, npt.NDArray[np.bool_]]] = []
+    for line, mask in sorted(((line, m) for line, m in masks if m.any()), key=lambda lm: -int(lm[1].sum())):
+        same_item = any(line.split()[0] == k.split()[0] and ((mask & km).sum() > DUPLICATE_IOU * (mask | km).sum()
+                                                             or (mask & km).sum() > PART_SHARE * mask.sum())
+                        for k, km in kept)
+        if not same_item:
+            kept.append((line, mask))
+    return [line for line, _ in kept]
+
+
 def clean_home_lines(*, lines: Sequence[str]) -> list[str]:
-    """Drop outlines on the phone support and duplicates of the same item.
+    """Drop outlines on the phone support, then duplicates and parts of the same item.
 
     Args:
         lines: SAM 3 label lines of one home picture.
 
     Returns:
-        The lines to keep, largest outline first among duplicates.
+        The lines to keep, largest outline first.
     """
     support = np.zeros((MASK_SIZE_PX[1], MASK_SIZE_PX[0]), dtype=bool)
     support[:, : round(SUPPORT_RIGHT_EDGE * MASK_SIZE_PX[0])] = True
-    masks = [(line, outline_mask(line=line)) for line in lines]
-    masks = [(line, m) for line, m in masks if m.any() and (m & support).sum() < SUPPORT_SHARE * m.sum()]
-    kept: list[tuple[str, npt.NDArray[np.bool_]]] = []
-    for line, mask in sorted(masks, key=lambda lm: -int(lm[1].sum())):
-        same_item = any(line.split()[0] == k.split()[0] and (mask & km).sum() > DUPLICATE_IOU * (mask | km).sum()
-                        for k, km in kept)
-        if not same_item:
-            kept.append((line, mask))
-    return [line for line, _ in kept]
+    off_support = [line for line in lines
+                   if (m := outline_mask(line=line)).any() and (m & support).sum() < SUPPORT_SHARE * m.sum()]
+    return drop_duplicates(lines=off_support)
 
 
 def link_or_copy(*, source: Path, target: Path) -> None:
@@ -342,7 +360,7 @@ def main() -> None:
             keep=lambda p: (TRASHNET_NAME.match(source_stem(name=p.name)) is not None
                             and source_stem(name=p.name) not in human),
             clean=lambda lines: None if sum(line.split()[0] == str(CARDBOARD) for line in lines) > MAX_CARDBOARD_PIECES
-            else list(lines))
+            else drop_duplicates(lines=lines))
     train += [out / "home" / "train" / "images", out / "trashnet-sam3" / "train" / "images"]
     val.append(out / "home" / "valid" / "images")
 

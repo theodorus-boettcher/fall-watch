@@ -2,8 +2,8 @@
 
 import pytest
 
-from door_counter.mix import (DROP, METAL, RIGID, SOFT, class_map_from_names, clean_home_lines, remap_lines,
-                              source_stem)
+from door_counter.mix import (DROP, METAL, RIGID, SOFT, class_map_from_names, clean_home_lines, drop_duplicates,
+                              remap_lines, source_stem)
 
 
 def square(*, cls: int, x1: float, y1: float, x2: float, y2: float) -> str:
@@ -33,3 +33,10 @@ def test_home_cleaning_drops_the_support_and_duplicates() -> None:
     same_can = square(cls=METAL, x1=0.41, y1=0.41, x2=0.6, y2=0.69)
     other_can = square(cls=METAL, x1=0.7, y1=0.1, x2=0.9, y2=0.3)
     assert clean_home_lines(lines=[support, same_can, can, other_can]) == [can, other_can]
+
+
+def test_a_lid_inside_its_can_is_the_same_item() -> None:
+    can = square(cls=METAL, x1=0.3, y1=0.3, x2=0.7, y2=0.6)
+    lid = square(cls=METAL, x1=0.55, y1=0.32, x2=0.68, y2=0.58)
+    bottle_on_the_can = square(cls=RIGID, x1=0.55, y1=0.32, x2=0.68, y2=0.58)
+    assert drop_duplicates(lines=[lid, can, bottle_on_the_can]) == [can, bottle_on_the_can]
