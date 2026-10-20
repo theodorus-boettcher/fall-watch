@@ -2,10 +2,12 @@
 
 import threading
 from collections import OrderedDict
+from collections.abc import Sequence
 from dataclasses import dataclass
 
-from door_counter.gateway.line_counter import LineCounter
-from door_counter.gateway.messages import Batch, Frame, Health, Item, Preview
+from door_counter.gateway.fall_watch import Alert, FallWatch, PersonState
+from door_counter.gateway.messages import Batch, Frame, Health, Preview
+from door_counter.yolo_pose import Rect
 
 DEFAULT_HISTORY_FRAMES = 600
 
@@ -19,22 +21,25 @@ class LiveSnapshot:
     class_names: tuple[str, ...]
     latest_frame: Frame | None
     preview: Preview | None
-    preview_items: tuple[Item, ...]
+    preview_people: tuple[PersonState, ...]
     health: Health | None
     queued_frames: int
     dropped_frames: int
     last_batch_wall_time_s: float | None
-    crossings: tuple[int, ...]  # items per class that crossed the counting line since the gateway started
+    people: tuple[PersonState, ...]  # tracked people in the newest frame
+    alerts: tuple[Alert, ...]  # since the gateway started, oldest first
+    beds: tuple[Rect, ...]
 
 
 class LiveState:
     """Thread-safe store of the newest batch data. The HTTP handler threads share one instance."""
 
-    def __init__(self, *, history_frames: int = DEFAULT_HISTORY_FRAMES) -> None:
+    def __init__(self, *, history_frames: int = DEFAULT_HISTORY_FRAMES, beds: Sequence[Rect] = ()) -> None:
         """Create an empty store.
 
         Args:
             history_frames: how many recent frames to remember, so a preview can find its boxes.
+            beds: bed zones (0..1 of the upright frame) where lying raises no alert.
 
         Raises:
             ValueError: if history_frames is not positive.
@@ -44,6 +49,7 @@ class LiveState:
         self._history_frames = history_frames
         self._lock = threading.Lock()
         self._recent: OrderedDict[int, Frame] = OrderedDict()
+        self._people: dict[int, tuple[PersonState, ...]] = {}  # per remembered frame, so a preview finds its own
         self._session_id: int | None = None
         self._model: str | None = None
         self._class_names: tuple[str, ...] = ()
@@ -52,7 +58,7 @@ class LiveState:
         self._queued_frames = 0
         self._dropped_frames = 0
         self._last_batch_wall_time_s: float | None = None
-        self._counter = LineCounter()
+        self._watch = FallWatch(beds=beds)
 
     def add_batch(self, *, batch: Batch, received_wall_time_s: float) -> None:
         """Take in one batch from the phone.
@@ -67,16 +73,19 @@ class LiveState:
         with self._lock:
             if batch.session_id != self._session_id:
                 self._recent.clear()
+                self._people.clear()
                 self._preview = None
                 self._session_id = batch.session_id
             self._model = batch.model
             self._class_names = batch.class_names
             for frame in batch.frames:
                 if frame.frame_id not in self._recent:  # a re-sent batch must not move the tracker twice
-                    self._counter.update(frame=frame)
+                    self._watch.update(frame=frame, class_names=batch.class_names)
+                    self._people[frame.frame_id] = self._watch.people()
                 self._recent[frame.frame_id] = frame
             while len(self._recent) > self._history_frames:
-                self._recent.popitem(last=False)
+                old_id, _ = self._recent.popitem(last=False)
+                self._people.pop(old_id, None)
             if batch.preview is not None:
                 self._preview = batch.preview
             if batch.health is not None:
@@ -90,22 +99,34 @@ class LiveState:
         """Copy out the current state.
 
         Returns:
-            The snapshot. ``preview_items`` are the items of the preview's own frame, so they line
+            The snapshot. ``preview_people`` are the people of the preview's own frame, so they line
             up with the picture even when newer frames have arrived.
         """
         with self._lock:
             latest = next(reversed(self._recent.values()), None)
-            preview_frame = None if self._preview is None else self._recent.get(self._preview.frame_id)
             return LiveSnapshot(
                 session_id=self._session_id,
                 model=self._model,
                 class_names=self._class_names,
                 latest_frame=latest,
                 preview=self._preview,
-                preview_items=() if preview_frame is None else preview_frame.items,
+                preview_people=() if self._preview is None else self._people.get(self._preview.frame_id, ()),
                 health=self._health,
                 queued_frames=self._queued_frames,
                 dropped_frames=self._dropped_frames,
                 last_batch_wall_time_s=self._last_batch_wall_time_s,
-                crossings=self._counter.crossings(class_count=len(self._class_names)),
+                people=self._watch.people(),
+                alerts=self._watch.alerts(),
+                beds=self._watch.beds,
             )
+
+    def clear_alerts(self, *, now_wall_time_s: float) -> None:
+        """End every open alert.
+
+        Args:
+            now_wall_time_s: laptop clock, used only before any frame has arrived.
+        """
+        with self._lock:
+            last = self._watch.last_time_s
+            self._watch.clear_alerts(now_s=now_wall_time_s if last is None else last)
+        return None

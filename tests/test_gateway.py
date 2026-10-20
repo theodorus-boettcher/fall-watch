@@ -14,22 +14,19 @@ from door_counter.gateway.messages import MessageError, Preview, parse_batch
 from door_counter.gateway.server import snapshot_to_json
 
 
-def make_item(*, x2: float = 0.3, class_id: int = 3) -> dict[str, object]:
-    """Build one item like the phone sends: a 3 x 2 cell mask with the middle column on.
+def make_item(*, x2: float = 0.3, class_id: int = 1) -> dict[str, object]:
+    """Build one person like the phone sends: every keypoint at (0.2, 0.5), the nose fully visible.
 
     Args:
         x2: right edge of the box.
-        class_id: the item's class.
+        class_id: the posture class.
 
     Returns:
         The decoded JSON item.
     """
-    return {
-        "class_id": class_id,
-        "score": 0.88,
-        "box": [0.1, 0.2, x2, 0.9],
-        "mask": {"rect": [0.1, 0.2, x2, 0.9], "width_cells": 3, "height_cells": 2, "runs": [1, 1, 2, 1, 1]},
-    }
+    keypoints = [0.2, 0.5, 0.3] * 17
+    keypoints[2] = 1.0
+    return {"class_id": class_id, "score": 0.88, "box": [0.1, 0.2, x2, 0.9], "keypoints": keypoints}
 
 
 def make_payload(*, session_id: int = 7, first_frame_id: int = 0, frame_count: int = 2) -> dict[str, object]:
@@ -56,8 +53,8 @@ def make_payload(*, session_id: int = 7, first_frame_id: int = 0, frame_count: i
     ]
     return {
         "session_id": session_id,
-        "model": "models/yolo26n-seg-320",
-        "class_names": ["cardboard", "soft plastic", "rigid plastic", "metal"],
+        "model": "models/fall-v1",
+        "class_names": ["not lying", "lying"],
         "frames": frames,
         "queued_frames": frame_count,
         "dropped_frames": 0,
@@ -84,8 +81,10 @@ def test_parse_batch_converts_units_and_types() -> None:
     assert len(batch.frames) == 2
     assert batch.frames[0].wall_time_s == pytest.approx(1_760_000_000.0)
     assert batch.frames[1].items[0].box.x2 == pytest.approx(0.31)
-    assert batch.frames[0].items[0].mask.runs == (1, 1, 2, 1, 1)
-    assert batch.class_names[batch.frames[0].items[0].class_id] == "metal"
+    keypoints = batch.frames[0].items[0].keypoints
+    assert len(keypoints) == 17 and keypoints[0].visibility == pytest.approx(1.0)
+    assert (keypoints[16].x, keypoints[16].y) == pytest.approx((0.2, 0.5))
+    assert batch.class_names[batch.frames[0].items[0].class_id] == "lying"
     assert batch.health is not None and batch.health.uptime_s == pytest.approx(1000.0)
     assert batch.preview is not None and batch.preview.jpeg == b"\xff\xd8fake"
 
@@ -106,10 +105,11 @@ def test_parse_batch_accepts_missing_optional_parts() -> None:
         ("box", [0.1, 0.2, 0.3, 1.5]),  # outside 0..1
         ("box", [0.5, 0.2, 0.3, 0.9]),  # x1 > x2
         ("box", [0.1, 0.2, 0.3, True]),  # bool is not a number here
-        ("class_id", 4),  # only 4 classes
+        ("class_id", 2),  # only 2 classes
         ("score", 1.2),
-        ("mask", {"rect": [0, 0, 1, 1], "width_cells": 3, "height_cells": 2, "runs": [1, 1, 1]}),  # runs too short
-        ("mask", {"rect": [0, 0, 1, 1], "width_cells": 1, "height_cells": 1, "runs": [-1, 2]}),  # negative run
+        ("keypoints", [0.5] * 50),  # one value short
+        ("keypoints", [0.5] * 50 + [1.5]),  # outside 0..1
+        ("keypoints", [0.5] * 50 + [True]),  # bool is not a number here
     ],
 )
 def test_parse_batch_rejects_bad_items(field: str, value: object) -> None:
@@ -136,7 +136,7 @@ def test_parse_batch_rejects_bad_rotation_and_missing_fields() -> None:
         parse_batch(payload=["not", "an", "object"])
 
 
-def test_preview_gets_the_items_of_its_own_frame() -> None:
+def test_preview_gets_the_people_of_its_own_frame() -> None:
     state = LiveState()
     state.add_batch(batch=parse_batch(payload=make_payload(frame_count=3)), received_wall_time_s=10.0)
     newer = make_payload(first_frame_id=3, frame_count=2)
@@ -145,7 +145,8 @@ def test_preview_gets_the_items_of_its_own_frame() -> None:
     snapshot = state.snapshot()
     assert snapshot.latest_frame is not None and snapshot.latest_frame.frame_id == 4
     assert snapshot.preview is not None and snapshot.preview.frame_id == 2
-    assert snapshot.preview_items[0].box.x2 == pytest.approx(0.32)  # frame 2's box, not frame 4's
+    assert snapshot.preview_people[0].item.box.x2 == pytest.approx(0.32)  # frame 2's box, not frame 4's
+    assert snapshot.people[0].item.box.x2 == pytest.approx(0.31)  # the newest frame (4) is the second of its batch
 
 
 def test_new_session_clears_old_frames() -> None:
@@ -157,14 +158,14 @@ def test_new_session_clears_old_frames() -> None:
     snapshot = state.snapshot()
     assert snapshot.session_id == 2
     assert snapshot.preview is None
-    assert snapshot.preview_items == ()
+    assert snapshot.preview_people == ()
 
 
 def test_history_is_bounded() -> None:
     state = LiveState(history_frames=3)
     state.add_batch(batch=parse_batch(payload=make_payload(frame_count=10)), received_wall_time_s=10.0)
-    # The preview's frame (9) is among the newest 3, so it keeps its boxes.
-    assert len(state.snapshot().preview_items) == 1
+    # The preview's frame (9) is among the newest 3, so it keeps its people.
+    assert len(state.snapshot().preview_people) == 1
     with pytest.raises(ValueError):
         LiveState(history_frames=0)
 
@@ -175,7 +176,8 @@ def test_snapshot_json_leaves_out_the_picture() -> None:
     data = snapshot_to_json(snapshot=state.snapshot(), now_wall_time_s=12.5)
     assert data["seconds_since_last_batch"] == pytest.approx(2.5)
     assert data["preview"] == {"frame_id": 1, "rotation_deg": 180}
-    assert data["class_names"] == ["cardboard", "soft plastic", "rigid plastic", "metal"]
+    assert data["class_names"] == ["not lying", "lying"]
+    assert data["alerts"] == [] and len(data["people"]) == 1
     assert "jpeg" not in str(data)
 
 
@@ -186,9 +188,9 @@ def test_capture_saves_upright_pictures_only_while_a_clip_runs(tmp_path: Path) -
     preview = Preview(frame_id=3, rotation_deg=90, jpeg=jpeg)
     capture = Capture(root=tmp_path)
     assert capture.save(preview=preview, session_id=1) is None
-    capture.start(clip="metal-1")
+    capture.start(clip="fall-1")
     saved = capture.save(preview=preview, session_id=1)
-    assert saved == tmp_path / "metal-1" / "1_00000003.jpg"
+    assert saved == tmp_path / "fall-1" / "1_00000003.jpg"
     upright = cv2.imread(str(saved), cv2.IMREAD_GRAYSCALE)
     assert upright is not None
     assert upright.shape == (6, 4)
@@ -198,7 +200,7 @@ def test_capture_saves_upright_pictures_only_while_a_clip_runs(tmp_path: Path) -
     assert capture.saved == 1
 
 
-@pytest.mark.parametrize("name", ["../x", "Metal", "", "a/b", "x" * 49])
+@pytest.mark.parametrize("name", ["../x", "Fall", "", "a/b", "x" * 49])
 def test_capture_refuses_unsafe_clip_names(tmp_path: Path, name: str) -> None:
     with pytest.raises(CaptureError):
         Capture(root=tmp_path).start(clip=name)

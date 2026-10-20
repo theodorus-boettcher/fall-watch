@@ -1,8 +1,8 @@
 """Messages the phone sends to the gateway, checked and turned into dataclasses.
 
 The phone POSTs one JSON batch to ``/frames`` at a time (see ``GatewayClient.java``). Times arrive
-in milliseconds and are converted to seconds here. Boxes and mask rectangles are 0..1 of the upright
-frame; a mask is a small patch of cells with run-length encoding (see ``door_counter.yolo_seg``).
+in milliseconds and are converted to seconds here. Boxes and keypoints are 0..1 of the upright frame
+(see ``door_counter.yolo_pose``).
 """
 
 import base64
@@ -10,7 +10,7 @@ import binascii
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
-from door_counter.yolo_seg import Rect
+from door_counter.yolo_pose import KEYPOINT_COUNT, Keypoint, Rect
 
 MILLIS_PER_S = 1000.0
 RECT_VALUES = 4
@@ -22,23 +22,13 @@ class MessageError(ValueError):
 
 
 @dataclass(frozen=True)
-class Mask:
-    """An item's mask: ``width_cells`` x ``height_cells`` cells covering ``rect``, as off/on runs."""
-
-    rect: Rect
-    width_cells: int
-    height_cells: int
-    runs: tuple[int, ...]
-
-
-@dataclass(frozen=True)
 class Item:
-    """One item found by the phone."""
+    """One person found by the phone: posture class, score, box and the 17 COCO keypoints."""
 
     class_id: int
     score: float
     box: Rect
-    mask: Mask
+    keypoints: tuple[Keypoint, ...]
 
 
 @dataclass(frozen=True)
@@ -164,7 +154,7 @@ def _parse_item(*, value: object, class_count: int) -> Item:
         The item.
 
     Raises:
-        MessageError: if the class id, score, box or mask is malformed.
+        MessageError: if the class id, score, box or keypoints are malformed.
     """
     item = _as_mapping(value=value, name="item")
     class_id = _get_int(obj=item, key="class_id")
@@ -177,32 +167,28 @@ def _parse_item(*, value: object, class_count: int) -> Item:
         class_id=class_id,
         score=score,
         box=_parse_rect(value=item.get("box"), name="box"),
-        mask=_parse_mask(value=item.get("mask")),
+        keypoints=_parse_keypoints(value=item.get("keypoints")),
     )
 
 
-def _parse_mask(*, value: object) -> Mask:
-    """Convert an item's ``mask`` field.
+def _parse_keypoints(*, value: object) -> tuple[Keypoint, ...]:
+    """Convert an item's ``keypoints`` field: x, y, visibility for each COCO keypoint, all in 0..1.
 
     Args:
         value: the field.
 
     Returns:
-        The mask.
+        The keypoints, in COCO order.
 
     Raises:
-        MessageError: if the rect is malformed or the runs do not fill the patch exactly.
+        MessageError: if it is not 51 numbers in 0..1.
     """
-    mask = _as_mapping(value=value, name="mask")
-    width = _get_int(obj=mask, key="width_cells")
-    height = _get_int(obj=mask, key="height_cells")
-    runs = mask.get("runs")
-    if not isinstance(runs, list) or not all(isinstance(r, int) and not isinstance(r, bool) for r in runs):
-        raise MessageError("runs must be a list of integers")
-    if width < 0 or height < 0 or any(r < 0 for r in runs) or sum(runs) != width * height:
-        raise MessageError("runs must be non-negative and add up to width_cells x height_cells")
-    return Mask(rect=_parse_rect(value=mask.get("rect"), name="mask rect"), width_cells=width, height_cells=height,
-                runs=tuple(runs))
+    if not isinstance(value, list) or len(value) != 3 * KEYPOINT_COUNT:
+        raise MessageError(f"keypoints must be a list of {3 * KEYPOINT_COUNT} numbers")
+    if not all(isinstance(v, int | float) and not isinstance(v, bool) and 0.0 <= v <= 1.0 for v in value):
+        raise MessageError("keypoint values must be numbers in 0..1")
+    return tuple(Keypoint(x=float(value[i]), y=float(value[i + 1]), visibility=float(value[i + 2]))
+                 for i in range(0, len(value), 3))
 
 
 def _parse_rect(*, value: object, name: str) -> Rect:

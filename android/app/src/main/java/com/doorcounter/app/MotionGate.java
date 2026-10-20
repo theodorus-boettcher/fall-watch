@@ -3,10 +3,10 @@ package com.doorcounter.app;
 /**
  * Decides whether a camera frame is worth running the model on.
  *
- * <p>An empty or still belt does not need 5 detections a second. Each frame is shrunk to a tiny
+ * <p>An empty or still room does not need 5 detections a second. Each frame is shrunk to a tiny
  * grid of brightness samples and compared with the previous one. While something moves (and for a
  * short hold time after), every frame may run; otherwise only one frame per idle interval runs, so
- * a newly placed item still shows up within about a second. This saves heat and battery.
+ * a change (or a person lying still) is still seen within about a second. This saves heat and battery.
  *
  * <p>Not thread safe: call it from the camera thread only.
  */

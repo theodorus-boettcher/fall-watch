@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sorting line live</title>
+<title>Fall watch live</title>
 <style>
   :root {
     --bg: #f4f4f1; --panel: #ffffff; --text: #1c1c1a; --muted: #6b6b66; --line: #deded8;
@@ -31,21 +31,27 @@
   .warn { color: var(--warn); }
   .bad { color: var(--bad); }
   h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 16px 0 0; }
+  #alert { display: none; background: var(--bad); color: #fff; border-radius: 8px; padding: 10px 12px;
+           margin-bottom: 10px; font-weight: 700; align-items: center; justify-content: space-between; gap: 12px; }
+  #alert button { font: inherit; font-weight: 600; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  ol { margin: 8px 0 0; padding-left: 20px; }
+  li { margin: 2px 0; }
 </style>
 </head>
 <body>
 <main>
   <section class="panel">
-    <h1>Phone camera, items found on the phone</h1>
+    <h1>Bedroom: people seen by the phone</h1>
+    <div id="alert"><span id="alert-text"></span><button id="clear" type="button">Clear</button></div>
     <canvas id="view" width="640" height="480"></canvas>
     <div class="status" id="status">waiting for the phone...</div>
   </section>
   <aside class="panel">
-    <div style="color: var(--muted)">items in view now</div>
+    <div style="color: var(--muted)">people in view now</div>
     <div class="big" id="items">-</div>
-    <dl id="classes"></dl>
-    <h2>crossed the line</h2>
-    <dl id="crossings"><dt>-</dt><dd></dd></dl>
+    <dl id="people"></dl>
+    <h2>alerts</h2>
+    <ol id="alerts"><li>none yet</li></ol>
     <h2>phone</h2>
     <dl>
       <dt>frames per second</dt><dd id="fps">-</dd>
@@ -63,16 +69,21 @@
 <script>
   const POLL_MS = 150;
   const STALE_S = 3;
-  // Fixed colours per class id, distinct on dark and light backgrounds.
-  const PALETTE = [[230, 159, 0], [86, 180, 233], [0, 158, 115], [240, 228, 66], [204, 121, 167],
-                   [213, 94, 0], [0, 114, 178], [255, 255, 255]];
+  const MIN_VISIBILITY = 0.5;
+  // COCO skeleton: pairs of keypoint indices (0 nose, 5/6 shoulders, 11/12 hips, 15/16 ankles).
+  const EDGES = [[5, 7], [7, 9], [6, 8], [8, 10], [5, 6], [5, 11], [6, 12], [11, 12], [11, 13], [13, 15],
+                 [12, 14], [14, 16], [0, 1], [0, 2], [1, 3], [2, 4]];
+  const STANDING = [0, 158, 115], IN_BED = [86, 180, 233], ON_FLOOR = [240, 60, 60], BED = [86, 180, 233];
   const canvas = document.getElementById("view");
   const ctx = canvas.getContext("2d");
   let shownPreviewId = null;
   let loading = false;
 
-  function colour(classId) { return PALETTE[classId % PALETTE.length]; }
   function rgb(c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; }
+  function colour(p) { return !p.is_lying ? STANDING : p.is_in_bed ? IN_BED : ON_FLOOR; }
+  function posture(p) {
+    return !p.is_lying ? "not lying" : p.is_in_bed ? "lying in bed" : "on the floor " + p.lying_for_s.toFixed(0) + " s";
+  }
 
   function setText(id, text, cls) {
     const el = document.getElementById(id);
@@ -80,97 +91,96 @@
     el.className = cls || "";
   }
 
-  // A mask arrives as off/on runs over a small grid of cells; paint it into a tiny canvas
-  // and let drawImage stretch it (smoothly) over the mask rectangle.
-  function maskCanvas(mask, c) {
-    const w = mask.width_cells, h = mask.height_cells;
-    if (w === 0 || h === 0) { return null; }
-    const off = document.createElement("canvas");
-    off.width = w; off.height = h;
-    const octx = off.getContext("2d");
-    const img = octx.createImageData(w, h);
-    let pos = 0, on = false;
-    for (const run of mask.runs) {
-      if (on) {
-        for (let i = pos; i < pos + run; i++) {
-          img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = 140;
-        }
-      }
-      pos += run; on = !on;
+  // Draw the picture rotated upright (clockwise), or a dark room when there is none, then the bed
+  // zones and each person's skeleton, box and label (all 0..1 of the upright frame).
+  function draw(img, rotationDeg, people, beds, frameW, frameH) {
+    if (img) {
+      const swapped = rotationDeg === 90 || rotationDeg === 270;
+      canvas.width = swapped ? img.height : img.width;
+      canvas.height = swapped ? img.width : img.height;
+    } else {
+      canvas.width = frameW; canvas.height = frameH;
     }
-    octx.putImageData(img, 0, 0);
-    return off;
-  }
-
-  // Draw the picture rotated upright (clockwise), then masks, boxes and labels (0..1 of the upright frame).
-  function draw(img, rotationDeg, items, names, lineX) {
-    const swapped = rotationDeg === 90 || rotationDeg === 270;
-    canvas.width = swapped ? img.height : img.width;
-    canvas.height = swapped ? img.width : img.height;
     const w = canvas.width, h = canvas.height;
-    ctx.save();
-    if (rotationDeg === 90) { ctx.translate(w, 0); }
-    else if (rotationDeg === 180) { ctx.translate(w, h); }
-    else if (rotationDeg === 270) { ctx.translate(0, h); }
-    ctx.rotate(rotationDeg * Math.PI / 180);
-    ctx.drawImage(img, 0, 0);
-    ctx.restore();
-    ctx.imageSmoothingEnabled = true;
-    ctx.lineWidth = 2;
+    if (img) {
+      ctx.save();
+      if (rotationDeg === 90) { ctx.translate(w, 0); }
+      else if (rotationDeg === 180) { ctx.translate(w, h); }
+      else if (rotationDeg === 270) { ctx.translate(0, h); }
+      ctx.rotate(rotationDeg * Math.PI / 180);
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = "#101010"; ctx.fillRect(0, 0, w, h);
+    }
     ctx.font = "bold 15px system-ui, sans-serif";
-    for (const it of items) {
-      const c = colour(it.class_id);
-      const m = it.mask;
-      const mc = maskCanvas(m, c);
-      if (mc) {
-        ctx.drawImage(mc, m.rect.x1 * w, m.rect.y1 * h, (m.rect.x2 - m.rect.x1) * w, (m.rect.y2 - m.rect.y1) * h);
-      }
-      const b = it.box;
-      const x = b.x1 * w, y = b.y1 * h;
-      ctx.strokeStyle = rgb(c, 0.9);
-      ctx.strokeRect(x, y, (b.x2 - b.x1) * w, (b.y2 - b.y1) * h);
-      const label = (names[it.class_id] || ("class " + it.class_id)) + " " + it.score.toFixed(2);
-      const tw = ctx.measureText(label).width + 8;
-      ctx.fillStyle = rgb(c, 0.9);
-      ctx.fillRect(x, Math.max(0, y - 21), tw, 21);
-      ctx.fillStyle = "#000";
-      ctx.fillText(label, x + 4, Math.max(15, y - 6));
+    ctx.setLineDash([8, 6]); ctx.lineWidth = 2;
+    for (const b of beds) {
+      ctx.strokeStyle = rgb(BED, 0.9);
+      ctx.strokeRect(b.x1 * w, b.y1 * h, (b.x2 - b.x1) * w, (b.y2 - b.y1) * h);
+      ctx.fillStyle = rgb(BED, 0.9); ctx.fillText("bed", b.x1 * w + 6, b.y1 * h + 18);
     }
-    ctx.setLineDash([8, 6]);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-    ctx.beginPath(); ctx.moveTo(lineX * w, 0); ctx.lineTo(lineX * w, h); ctx.stroke();
     ctx.setLineDash([]);
+    for (const p of people) {
+      const c = colour(p), k = p.item.keypoints, b = p.item.box;
+      ctx.lineWidth = 4; ctx.strokeStyle = rgb(c, 0.95);
+      for (const [i, j] of EDGES) {
+        if (k[i].visibility < MIN_VISIBILITY || k[j].visibility < MIN_VISIBILITY) { continue; }
+        ctx.beginPath(); ctx.moveTo(k[i].x * w, k[i].y * h); ctx.lineTo(k[j].x * w, k[j].y * h); ctx.stroke();
+      }
+      ctx.fillStyle = rgb(c, 1);
+      for (const pt of k) {
+        if (pt.visibility >= MIN_VISIBILITY) { ctx.beginPath(); ctx.arc(pt.x * w, pt.y * h, 3, 0, 2 * Math.PI); ctx.fill(); }
+      }
+      ctx.lineWidth = 1; ctx.strokeStyle = rgb(c, 0.6);
+      ctx.strokeRect(b.x1 * w, b.y1 * h, (b.x2 - b.x1) * w, (b.y2 - b.y1) * h);
+      const label = "#" + p.track_id + " " + posture(p);
+      const tw = ctx.measureText(label).width + 8, y = b.y1 * h;
+      ctx.fillStyle = rgb(c, 0.9); ctx.fillRect(b.x1 * w, Math.max(0, y - 21), tw, 21);
+      ctx.fillStyle = "#000"; ctx.fillText(label, b.x1 * w + 4, Math.max(15, y - 6));
+    }
   }
 
-  function showCrossings(crossings, names) {
-    const dl = document.getElementById("crossings");
+  function showPeople(people) {
+    const dl = document.getElementById("people");
     dl.replaceChildren();
-    crossings.forEach((n, id) => {
+    for (const p of people) {
       const dt = document.createElement("dt");
       const sw = document.createElement("span");
-      sw.className = "swatch"; sw.style.background = rgb(colour(id), 1);
-      dt.append(sw, names[id] || ("class " + id));
+      sw.className = "swatch"; sw.style.background = rgb(colour(p), 1);
+      dt.append(sw, "#" + p.track_id);
       const dd = document.createElement("dd");
-      dd.textContent = String(n);
-      dl.append(dt, dd);
-    });
-  }
-
-  function showClassCounts(items, names) {
-    const counts = new Map();
-    for (const it of items) { counts.set(it.class_id, (counts.get(it.class_id) || 0) + 1); }
-    const dl = document.getElementById("classes");
-    dl.replaceChildren();
-    for (const [id, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
-      const dt = document.createElement("dt");
-      const sw = document.createElement("span");
-      sw.className = "swatch"; sw.style.background = rgb(colour(id), 1);
-      dt.append(sw, names[id] || ("class " + id));
-      const dd = document.createElement("dd");
-      dd.textContent = String(n);
+      dd.textContent = posture(p);
       dl.append(dt, dd);
     }
   }
+
+  // Alert times are the phone's clock, which may be wrong (no internet time), so show them as "ago".
+  function showAlerts(alerts, nowS) {
+    const open = alerts.filter(a => a.ended_s === null);
+    const box = document.getElementById("alert");
+    box.style.display = open.length ? "flex" : "none";
+    if (open.length) {
+      const a = open[open.length - 1];
+      setText("alert-text", "Person #" + a.track_id + " has been lying on the floor for " +
+              (nowS - a.lying_since_s).toFixed(0) + " s");
+    }
+    const ol = document.getElementById("alerts");
+    ol.replaceChildren();
+    for (const a of alerts.slice(-8).reverse()) {
+      const li = document.createElement("li");
+      li.textContent = "#" + a.track_id + ", " + (nowS - a.raised_s).toFixed(0) + " s ago" +
+                       (a.ended_s === null ? ", still on the floor" : ", up again after " +
+                        (a.ended_s - a.lying_since_s).toFixed(0) + " s");
+      li.className = a.ended_s === null ? "bad" : "";
+      ol.append(li);
+    }
+    if (!alerts.length) { const li = document.createElement("li"); li.textContent = "none yet"; ol.append(li); }
+  }
+
+  document.getElementById("clear").addEventListener("click", () => {
+    fetch("/alerts/clear", { method: "POST" });
+  });
 
   async function poll() {
     try {
@@ -182,16 +192,16 @@
       } else if (age > STALE_S) {
         setText("status", "no data from the phone for " + age.toFixed(0) + " s", "bad");
       } else {
-        setText("status", s.preview ? "live" : "live, but previews are off (only items arrive)",
-                s.preview ? "" : "warn");
+        setText("status", s.preview ? "live, with the camera picture" : "live, stick figures only (no picture leaves the phone)");
       }
-      if (s.latest_frame) {
-        setText("items", String(s.latest_frame.items.length));
-        setText("frame", "#" + s.latest_frame.frame_id);
-        showClassCounts(s.latest_frame.items, s.class_names);
+      const f = s.latest_frame;
+      if (f) {
+        setText("items", String(s.people.length));
+        setText("frame", "#" + f.frame_id);
+        showPeople(s.people);
+        showAlerts(s.alerts, f.wall_time_s);
       }
       if (s.model) { setText("model", s.model.replace("models/", "")); }
-      if (s.crossings.length) { showCrossings(s.crossings, s.class_names); }
       if (s.health) {
         const hl = s.health;
         setText("fps", hl.fps.toFixed(1));
@@ -212,12 +222,14 @@
         loading = true;
         const img = new Image();
         img.onload = () => {
-          draw(img, s.preview.rotation_deg, s.preview_items, s.class_names, s.line_x);
+          draw(img, s.preview.rotation_deg, s.preview_people, s.beds, 0, 0);
           shownPreviewId = s.preview.frame_id;
           loading = false;
         };
         img.onerror = () => { loading = false; };
         img.src = "/preview.jpg?f=" + s.preview.frame_id;
+      } else if (!s.preview && f) {
+        draw(null, 0, s.people, s.beds, f.width_px, f.height_px);
       }
     } catch (e) {
       setText("status", "gateway not reachable", "bad");

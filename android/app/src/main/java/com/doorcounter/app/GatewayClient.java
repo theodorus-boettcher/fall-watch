@@ -24,8 +24,8 @@ import java.util.List;
 /**
  * Sends detector results to the laptop gateway on its own thread.
  *
- * <p>Every frame's items (class, score, box, mask) are queued and sent in order, in batches, so
- * the gateway can track items even after a network gap. While the gateway is unreachable the queue keeps growing up to
+ * <p>Every frame's people (class, score, box, keypoints) are queued and sent in order, in batches, so
+ * the gateway can track people even after a network gap. While the gateway is unreachable the queue keeps growing up to
  * a limit, then the oldest frames are dropped (and counted). Preview pictures are different: only
  * the newest one is kept, and it is sent only when previews are switched on.
  */
@@ -223,7 +223,7 @@ final class GatewayClient {
         for (FrameResult result : batch) {
             JSONArray items = new JSONArray();
             for (int i = 0; i < result.items.length; i += Detector.VALUES_PER_ITEM) {
-                items.put(itemJson(result.items, i, result.runs));
+                items.put(itemJson(result.items, i));
             }
             frames.put(new JSONObject()
                     .put("frame_id", result.frameId)
@@ -253,30 +253,23 @@ final class GatewayClient {
     }
 
     /**
-     * One item as JSON: class, score, box, and its mask patch with runs.
+     * One person as JSON: class, score, box, and x, y, visibility of each keypoint.
      *
-     * @param records the frame's item records
-     * @param start index of this item's first value
-     * @param runs the frame's mask runs
+     * @param records the frame's person records
+     * @param start index of this person's first value
      * @return the item
      * @throws JSONException never in practice; org.json declares it
      */
-    private static JSONObject itemJson(float[] records, int start, int[] runs) throws JSONException {
-        JSONArray runArray = new JSONArray();
-        int offset = (int) records[start + Detector.RUN_OFFSET];
-        int count = (int) records[start + Detector.RUN_COUNT];
-        for (int k = offset; k < offset + count; k++) {
-            runArray.put(runs[k]);
+    private static JSONObject itemJson(float[] records, int start) throws JSONException {
+        JSONArray keypoints = new JSONArray();
+        for (int k = 0; k < 3 * Detector.KEYPOINT_COUNT; k++) {
+            keypoints.put((double) records[start + Detector.KEYPOINTS + k]);
         }
         return new JSONObject()
                 .put("class_id", (int) records[start + Detector.CLASS_ID])
                 .put("score", (double) records[start + Detector.SCORE])
                 .put("box", rectJson(records, start + Detector.BOX))
-                .put("mask", new JSONObject()
-                        .put("rect", rectJson(records, start + Detector.MASK_RECT))
-                        .put("width_cells", (int) records[start + Detector.MASK_WIDTH])
-                        .put("height_cells", (int) records[start + Detector.MASK_HEIGHT])
-                        .put("runs", runArray));
+                .put("keypoints", keypoints);
     }
 
     /**

@@ -1,7 +1,7 @@
-"""Train the phone model (YOLO26n-seg) on the laptop GPU, score it, and export it for the phone.
+"""Train the phone model (YOLO26n-pose) on a GPU, score it, and export it for the phone.
 
 Needs the ``train`` dependency group (``uv sync --group train``). Example:
-``uv run --group train python -m door_counter.train --data data/zerowaste-960/data.yaml --name v1``.
+``uv run --group train python -m door_counter.train --data data/fall-v1/data.yaml --name fall-v1``.
 The phone files land in ``models/<name>/`` as ``<name>.param``, ``<name>.bin`` and ``<name>.labels``.
 """
 
@@ -12,10 +12,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import yaml
-from ultralytics.models import YOLO, YOLOE
-from ultralytics.models.yolo.yoloe import YOLOEPESegTrainer
+from ultralytics.models import YOLO
 
-DEFAULT_BASE_MODEL = "yolo26n-seg.pt"
+DEFAULT_BASE_MODEL = "yolo26n-pose.pt"
 DEFAULT_IMAGE_SIZE_PX = 320  # what the phone runs
 DEFAULT_EPOCHS = 80
 DEFAULT_BATCH = 32
@@ -44,12 +43,12 @@ class Scores:
     images: int
     box_map50: float
     box_map50_95: float
-    mask_map50: float
-    mask_map50_95: float
+    pose_map50: float  # keypoints: how close the predicted points are to the true ones (OKS)
+    pose_map50_95: float
 
 
 def train(*, config: TrainConfig) -> Path:
-    """Fine-tune the base model (YOLO26 or YOLOE-26) on the dataset.
+    """Fine-tune the base model on the dataset.
 
     Args:
         config: the run settings.
@@ -60,13 +59,7 @@ def train(*, config: TrainConfig) -> Path:
     Raises:
         FileNotFoundError: if training finished without writing best weights.
     """
-    if Path(config.base_model).name.startswith("yoloe"):  # YOLOE builds the class head from the class names' text
-        model: YOLO | YOLOE = YOLOE(model=config.base_model)
-        extra: dict[str, object] = {"trainer": YOLOEPESegTrainer}
-    else:
-        model, extra = YOLO(model=config.base_model), {}
-    model.train(
-        **extra,
+    YOLO(model=config.base_model).train(
         data=str(config.data_yaml),
         imgsz=config.image_size_px,
         epochs=config.epochs,
@@ -115,7 +108,7 @@ def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> 
         image_size_px: input size, the same as on the phone.
 
     Returns:
-        Box and mask mAP.
+        Box and keypoint mAP.
     """
     metrics = YOLO(model=str(weights)).val(data=str(data_yaml), split=split, imgsz=image_size_px, plots=False,
                                            verbose=False)
@@ -124,8 +117,8 @@ def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> 
         images=count_images(data_yaml=data_yaml, split=split),
         box_map50=float(metrics.box.map50),
         box_map50_95=float(metrics.box.map),
-        mask_map50=float(metrics.seg.map50),
-        mask_map50_95=float(metrics.seg.map),
+        pose_map50=float(metrics.pose.map50),
+        pose_map50_95=float(metrics.pose.map),
     )
 
 
@@ -173,8 +166,8 @@ def main() -> None:
     report = {"config": {k: str(v) for k, v in asdict(config).items()}, "scores": [asdict(s) for s in scores]}
     (out_dir / "scores.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     for s in scores:
-        print(f"{s.split}: {s.images} images, mask mAP50 {s.mask_map50:.3f}, mask mAP50-95 {s.mask_map50_95:.3f}, "
-              f"box mAP50 {s.box_map50:.3f}", flush=True)
+        print(f"{s.split}: {s.images} images, box mAP50 {s.box_map50:.3f}, keypoint mAP50 {s.pose_map50:.3f}, "
+              f"keypoint mAP50-95 {s.pose_map50_95:.3f}", flush=True)
     print(f"phone files in {out_dir}", flush=True)
     return None
 

@@ -24,7 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Foreground service that finds items in the camera stream and sends classes, boxes and masks to the gateway.
+ * Foreground service that finds people in the camera stream and sends postures, boxes and keypoints to the gateway.
  *
  * <p>Works with the screen off: the preview goes to an off-screen SurfaceTexture and a partial
  * wake lock keeps the CPU running. The camera delivers frames into a few reused buffers. When the
@@ -272,11 +272,10 @@ public final class CounterService extends Service {
             int rotation = settings.rotationDeg;
             long startNs = SystemClock.elapsedRealtimeNanos();
             float[] items = detector.detect(nv21, width, height, rotation, MIN_SCORE);
-            int[] runs = detector.lastRuns();
             double inferenceS = (SystemClock.elapsedRealtimeNanos() - startNs) / NANOS_PER_S;
             boolean isSwapped = rotation == 90 || rotation == 270;
             FrameResult result = new FrameResult(frameCount, System.currentTimeMillis(),
-                    isSwapped ? height : width, isSwapped ? width : height, inferenceS, items, runs);
+                    isSwapped ? height : width, isSwapped ? width : height, inferenceS, items);
             gateway.enqueue(result);
             if (settings.isPreviewEnabled && gateway.isPreviewSlotFree()) {
                 gateway.offerPreview(frameCount, nv21.clone(), width, height, rotation);

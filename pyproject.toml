@@ -21,7 +21,11 @@ dev = [
     "types-pyyaml>=6.0.12.20260906",
 ]
 train = [
+    "pnnx",  # ncnn export for the phone
     "ultralytics>=8.4.178",
+]
+teacher = [
+    "rfdetr>=1.11.2",
 ]
 
 [build-system]

@@ -11,23 +11,20 @@ final class FrameResult {
     final int uprightHeightPx;
     /** Time spent in the detector for this frame. */
     final double inferenceS;
-    /** {@link Detector#VALUES_PER_ITEM} values per item (see {@link Detector#detect}). */
+    /** {@link Detector#VALUES_PER_ITEM} values per person (see {@link Detector#detect}). */
     final float[] items;
-    /** Mask runs of all items (see {@link Detector#lastRuns}). */
-    final int[] runs;
 
     FrameResult(long frameId, long wallTimeMs, int uprightWidthPx, int uprightHeightPx, double inferenceS,
-                float[] items, int[] runs) {
+                float[] items) {
         this.frameId = frameId;
         this.wallTimeMs = wallTimeMs;
         this.uprightWidthPx = uprightWidthPx;
         this.uprightHeightPx = uprightHeightPx;
         this.inferenceS = inferenceS;
         this.items = items;
-        this.runs = runs;
     }
 
-    /** @return the number of items found */
+    /** @return the number of people found */
     int itemCount() {
         return items.length / Detector.VALUES_PER_ITEM;
     }

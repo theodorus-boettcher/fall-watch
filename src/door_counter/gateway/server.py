@@ -9,7 +9,10 @@ Endpoints:
     GET  /             the live page
     GET  /api/latest   the current state as JSON, polled by the page
     GET  /preview.jpg  the newest preview picture
-    POST /capture?clip=metal-1   save previews into data/captures/metal-1/ (no clip: stop saving)
+    POST /capture?clip=fall-1    save previews into data/captures/fall-1/ (no clip: stop saving)
+    POST /alerts/clear  end every open alert (staff have seen to it)
+
+Bed zones (lying there raises no alert) come from ``--bed x1,y1,x2,y2`` in 0..1 of the upright picture.
 """
 
 import argparse
@@ -23,9 +26,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from door_counter.gateway.capture import Capture, CaptureError
-from door_counter.gateway.line_counter import DEFAULT_LINE_X
 from door_counter.gateway.live_state import LiveSnapshot, LiveState
 from door_counter.gateway.messages import MessageError, parse_batch
+from door_counter.yolo_pose import Rect
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -51,14 +54,36 @@ def snapshot_to_json(*, snapshot: LiveSnapshot, now_wall_time_s: float) -> dict[
         "class_names": list(snapshot.class_names),
         "latest_frame": None if snapshot.latest_frame is None else asdict(snapshot.latest_frame),
         "preview": None if preview is None else {"frame_id": preview.frame_id, "rotation_deg": preview.rotation_deg},
-        "preview_items": [asdict(item) for item in snapshot.preview_items],
+        "preview_people": [asdict(person) for person in snapshot.preview_people],
         "health": None if snapshot.health is None else asdict(snapshot.health),
         "queued_frames": snapshot.queued_frames,
         "dropped_frames": snapshot.dropped_frames,
         "seconds_since_last_batch": None if last is None else now_wall_time_s - last,
-        "crossings": list(snapshot.crossings),
-        "line_x": DEFAULT_LINE_X,
+        "people": [asdict(person) for person in snapshot.people],
+        "alerts": [asdict(alert) for alert in snapshot.alerts],
+        "beds": [asdict(bed) for bed in snapshot.beds],
     }
+
+
+def parse_bed(*, text: str) -> Rect:
+    """Read a ``--bed`` value.
+
+    Args:
+        text: ``x1,y1,x2,y2`` in 0..1 of the upright picture.
+
+    Returns:
+        The bed zone.
+
+    Raises:
+        argparse.ArgumentTypeError: if it is not 4 numbers in 0..1 with x1 < x2 and y1 < y2.
+    """
+    try:
+        x1, y1, x2, y2 = (float(v) for v in text.split(","))
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"bed must be x1,y1,x2,y2, got {text!r}") from e
+    if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
+        raise argparse.ArgumentTypeError(f"bed corners must be in 0..1 with x1 < x2 and y1 < y2, got {text!r}")
+    return Rect(x1=x1, y1=y1, x2=x2, y2=y2)
 
 
 def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[BaseHTTPRequestHandler]:
@@ -77,10 +102,15 @@ def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[Bas
         """Handles one HTTP request from the phone or the browser."""
 
         def do_POST(self) -> None:
-            """Take a batch from the phone, or start/stop a capture clip."""
+            """Take a batch from the phone, start/stop a capture clip, or clear the alerts."""
             url = urlsplit(self.path)
             if url.path == "/capture":
                 self._set_capture(clip=parse_qs(url.query).get("clip", [""])[0])
+                return None
+            if url.path == "/alerts/clear":
+                state.clear_alerts(now_wall_time_s=time.time())
+                self.send_response(HTTPStatus.NO_CONTENT)
+                self.end_headers()
                 return None
             if self.path != "/frames":
                 self.send_error(HTTPStatus.NOT_FOUND)
@@ -165,13 +195,15 @@ def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[Bas
 
 def main() -> None:
     """Parse the command line and serve until Ctrl+C."""
-    parser = argparse.ArgumentParser(description="Door counter gateway: receives the phone's detections.")
+    parser = argparse.ArgumentParser(description="Fall watch gateway: receives the phone's people and postures.")
     parser.add_argument("--host", default=DEFAULT_HOST, help="address to listen on (0.0.0.0 for Wi-Fi)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--capture-dir", type=Path, default=DEFAULT_CAPTURE_DIR, help="where capture clips go")
+    parser.add_argument("--bed", type=lambda text: parse_bed(text=text), action="append", default=[],
+                        help="bed zone x1,y1,x2,y2 in 0..1 of the upright picture; repeat for more beds")
     args = parser.parse_args()
     page = resources.files("door_counter.gateway").joinpath("live.html").read_bytes()
-    handler = make_handler(state=LiveState(), page=page, capture=Capture(root=args.capture_dir))
+    handler = make_handler(state=LiveState(beds=args.bed), page=page, capture=Capture(root=args.capture_dir))
     with ThreadingHTTPServer((args.host, args.port), handler) as server:
         print(f"gateway on http://{args.host}:{args.port}", flush=True)
         try:

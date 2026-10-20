@@ -1,11 +1,8 @@
-"""Reference decoding of YOLO26-seg (ncnn export), the same math as ``detector.cpp`` on the phone.
+"""Reference decoding of YOLO26-pose (ncnn export), the same math as ``detector.cpp`` on the phone.
 
 The model sees a square letterboxed picture. ``out0`` has one column per candidate: cx, cy, w, h
-(letterbox pixels), one score per class, then the mask weights. ``out1`` holds the mask prototypes
-at a quarter of the input size. An item's mask = sigmoid(weights x prototypes), cut to its box.
-
-Masks travel as a small patch on the prototype grid plus run-length encoding (RLE): the patch is read
-row by row, and the runs alternate between "off" and "on" cells, starting with "off".
+(letterbox pixels), one score per class, then x, y and visibility for each of the 17 COCO keypoints
+(x and y already in letterbox pixels, visibility already 0..1).
 """
 
 from collections.abc import Sequence
@@ -16,12 +13,12 @@ import numpy as np
 import numpy.typing as npt
 
 BOX_ROWS = 4
+KEYPOINT_COUNT = 17  # COCO person skeleton
+KEYPOINT_ROWS = KEYPOINT_COUNT * 3
 PAD_VALUE = 114
-PROTO_STRIDE_PX = 4  # prototypes are a quarter of the input size
 DEFAULT_MIN_SCORE = 0.25
 DEFAULT_OVERLAP_IOU = 0.7
-MASK_THRESHOLD = 0.5
-MAX_ITEMS = 50
+MAX_PEOPLE = 50
 
 
 @dataclass(frozen=True)
@@ -40,6 +37,15 @@ class Rect:
 
 
 @dataclass(frozen=True)
+class Keypoint:
+    """One body point: x and y in 0..1 of the upright frame, visibility 0..1."""
+
+    x: float
+    y: float
+    visibility: float
+
+
+@dataclass(frozen=True)
 class Letterbox:
     """Where the upright picture sits inside the square model input."""
 
@@ -52,21 +58,13 @@ class Letterbox:
 
 
 @dataclass(frozen=True)
-class MaskPatch:
-    """A mask on the prototype grid: ``cells`` covers ``rect`` (0..1 of the upright frame)."""
-
-    rect: Rect
-    cells: npt.NDArray[np.bool_]
-
-
-@dataclass(frozen=True)
-class Item:
-    """One item found by the model. ``box`` is 0..1 of the upright frame."""
+class Person:
+    """One person found by the model. ``box`` is 0..1 of the upright frame."""
 
     class_id: int
     score: float
     box: Rect
-    mask: MaskPatch
+    keypoints: tuple[Keypoint, ...]
 
 
 def make_letterbox(*, width_px: int, height_px: int, input_size_px: int) -> Letterbox:
@@ -128,7 +126,7 @@ def box_iou(*, a: Rect, b: Rect) -> float:
 
 
 def remove_overlaps(*, boxes: Sequence[Rect], scores: Sequence[float], iou_threshold: float) -> list[int]:
-    """Greedy non-maximum suppression across all classes (each item has one material).
+    """Greedy non-maximum suppression across all classes (each person has one posture).
 
     Args:
         boxes: candidate boxes.
@@ -136,13 +134,13 @@ def remove_overlaps(*, boxes: Sequence[Rect], scores: Sequence[float], iou_thres
         iou_threshold: boxes overlapping a better one by more than this are dropped.
 
     Returns:
-        Indices of the kept candidates, best first, at most ``MAX_ITEMS``.
+        Indices of the kept candidates, best first, at most ``MAX_PEOPLE``.
     """
     kept: list[int] = []
     for i in sorted(range(len(boxes)), key=lambda k: -scores[k]):
         if all(box_iou(a=boxes[i], b=boxes[k]) <= iou_threshold for k in kept):
             kept.append(i)
-            if len(kept) == MAX_ITEMS:
+            if len(kept) == MAX_PEOPLE:
                 break
     return kept
 
@@ -150,30 +148,27 @@ def remove_overlaps(*, boxes: Sequence[Rect], scores: Sequence[float], iou_thres
 def decode(
     *,
     out0: npt.NDArray[np.float32],
-    protos: npt.NDArray[np.float32],
     letterbox: Letterbox,
     min_score: float = DEFAULT_MIN_SCORE,
     iou_threshold: float = DEFAULT_OVERLAP_IOU,
-) -> list[Item]:
-    """Turn the raw model outputs into items with masks.
+) -> list[Person]:
+    """Turn the raw model output into people with keypoints.
 
     Args:
-        out0: (4 + classes + mask weights) x candidates.
-        protos: mask prototypes, weights x grid height x grid width.
+        out0: (4 + classes + 51) x candidates.
         letterbox: geometry used to build the input.
         min_score: lowest class score to keep.
         iou_threshold: overlap above which the weaker of two boxes is dropped.
 
     Returns:
-        Items, best first.
+        People, best first.
 
     Raises:
-        ValueError: if the two outputs do not fit together.
+        ValueError: if out0 has too few rows for a class and the keypoints.
     """
-    mask_dim, grid_h, grid_w = protos.shape
-    class_count = out0.shape[0] - BOX_ROWS - mask_dim
+    class_count = out0.shape[0] - BOX_ROWS - KEYPOINT_ROWS
     if class_count < 1:
-        raise ValueError(f"out0 has {out0.shape[0]} rows, too few for {mask_dim} mask weights")
+        raise ValueError(f"out0 has {out0.shape[0]} rows, too few for {KEYPOINT_ROWS} keypoint values")
     class_scores = out0[BOX_ROWS : BOX_ROWS + class_count]
     best_class = class_scores.argmax(axis=0)
     best_score = class_scores.max(axis=0)
@@ -186,61 +181,34 @@ def decode(
     kept = remove_overlaps(
         boxes=letterbox_boxes, scores=[float(s) for s in best_score[candidates]], iou_threshold=iou_threshold
     )
-    weights = out0[BOX_ROWS + class_count :]
-    items = []
+    keypoint_values = out0[BOX_ROWS + class_count :]
+    people = []
     for k in kept:
         column = int(candidates[k])
-        patch = _mask_patch(
-            weights=weights[:, column], protos=protos, box=letterbox_boxes[k], letterbox=letterbox, grid=(grid_h, grid_w)
-        )
-        items.append(
-            Item(
+        values = keypoint_values[:, column].reshape(KEYPOINT_COUNT, 3)
+        people.append(
+            Person(
                 class_id=int(best_class[column]),
                 score=float(best_score[column]),
                 box=_to_frame(rect=letterbox_boxes[k], letterbox=letterbox),
-                mask=patch,
+                keypoints=tuple(
+                    Keypoint(x=_to_x(v=float(x), letterbox=letterbox), y=_to_y(v=float(y), letterbox=letterbox),
+                             visibility=float(vis))
+                    for x, y, vis in values
+                ),
             )
         )
-    return items
+    return people
 
 
-def _mask_patch(
-    *,
-    weights: npt.NDArray[np.float32],
-    protos: npt.NDArray[np.float32],
-    box: Rect,
-    letterbox: Letterbox,
-    grid: tuple[int, int],
-) -> MaskPatch:
-    """Build one item's mask on the prototype grid, cut to its box and to the picture area.
+def _to_x(*, v: float, letterbox: Letterbox) -> float:
+    """Letterbox pixels to 0..1 of the upright frame's width, clipped."""
+    return float(np.clip((v - letterbox.pad_left_px) / letterbox.content_width_px, 0.0, 1.0))
 
-    Args:
-        weights: the item's mask weights.
-        protos: mask prototypes.
-        box: the item's box in letterbox pixels.
-        letterbox: geometry used to build the input.
-        grid: prototype grid height and width.
 
-    Returns:
-        The mask patch.
-    """
-    grid_h, grid_w = grid
-    content = Rect(
-        x1=letterbox.pad_left_px,
-        y1=letterbox.pad_top_px,
-        x2=letterbox.pad_left_px + letterbox.content_width_px,
-        y2=letterbox.pad_top_px + letterbox.content_height_px,
-    )
-    x1 = int(np.clip(np.floor(max(box.x1, content.x1) / PROTO_STRIDE_PX), 0, grid_w))
-    y1 = int(np.clip(np.floor(max(box.y1, content.y1) / PROTO_STRIDE_PX), 0, grid_h))
-    x2 = int(np.clip(np.ceil(min(box.x2, content.x2) / PROTO_STRIDE_PX), x1, grid_w))
-    y2 = int(np.clip(np.ceil(min(box.y2, content.y2) / PROTO_STRIDE_PX), y1, grid_h))
-    logits = np.tensordot(weights, protos[:, y1:y2, x1:x2], axes=1)
-    cells = (1.0 / (1.0 + np.exp(-logits))) > MASK_THRESHOLD
-    cell_rect = Rect(
-        x1=x1 * PROTO_STRIDE_PX, y1=y1 * PROTO_STRIDE_PX, x2=x2 * PROTO_STRIDE_PX, y2=y2 * PROTO_STRIDE_PX
-    )
-    return MaskPatch(rect=_to_frame(rect=cell_rect, letterbox=letterbox), cells=cells)
+def _to_y(*, v: float, letterbox: Letterbox) -> float:
+    """Letterbox pixels to 0..1 of the upright frame's height, clipped."""
+    return float(np.clip((v - letterbox.pad_top_px) / letterbox.content_height_px, 0.0, 1.0))
 
 
 def _to_frame(*, rect: Rect, letterbox: Letterbox) -> Rect:
@@ -253,58 +221,5 @@ def _to_frame(*, rect: Rect, letterbox: Letterbox) -> Rect:
     Returns:
         The rectangle in 0..1, clipped to the frame.
     """
-
-    def to_x(v: float) -> float:
-        return float(np.clip((v - letterbox.pad_left_px) / letterbox.content_width_px, 0.0, 1.0))
-
-    def to_y(v: float) -> float:
-        return float(np.clip((v - letterbox.pad_top_px) / letterbox.content_height_px, 0.0, 1.0))
-
-    return Rect(x1=to_x(rect.x1), y1=to_y(rect.y1), x2=to_x(rect.x2), y2=to_y(rect.y2))
-
-
-def encode_runs(*, cells: npt.NDArray[np.bool_]) -> list[int]:
-    """Run-length encode a mask patch row by row, starting with an "off" run (possibly 0).
-
-    Args:
-        cells: the patch, height x width.
-
-    Returns:
-        Alternating off/on run lengths that add up to height x width.
-    """
-    flat = cells.ravel()
-    runs: list[int] = []
-    current = False
-    length = 0
-    for value in flat:
-        if bool(value) == current:
-            length += 1
-        else:
-            runs.append(length)
-            current = not current
-            length = 1
-    runs.append(length)
-    return runs
-
-
-def decode_runs(*, runs: Sequence[int], width: int, height: int) -> npt.NDArray[np.bool_]:
-    """Undo ``encode_runs``.
-
-    Args:
-        runs: alternating off/on run lengths, starting with "off".
-        width: patch width in cells.
-        height: patch height in cells.
-
-    Returns:
-        The patch, height x width.
-
-    Raises:
-        ValueError: if a run is negative or the runs do not add up to width x height.
-    """
-    if any(run < 0 for run in runs):
-        raise ValueError("runs must not be negative")
-    if sum(runs) != width * height:
-        raise ValueError(f"runs add up to {sum(runs)}, expected {width * height}")
-    values = np.repeat(np.arange(len(runs)) % 2 == 1, runs)
-    return values.reshape(height, width)
-
+    return Rect(x1=_to_x(v=rect.x1, letterbox=letterbox), y1=_to_y(v=rect.y1, letterbox=letterbox),
+                x2=_to_x(v=rect.x2, letterbox=letterbox), y2=_to_y(v=rect.y2, letterbox=letterbox))
