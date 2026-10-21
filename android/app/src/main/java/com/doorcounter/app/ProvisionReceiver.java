@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.util.Log;
 
 /**
@@ -15,6 +17,7 @@ import android.util.Log;
  * shell has that permission, normal apps do not. Send a command with
  * {@code adb shell am broadcast -n com.doorcounter.app/.ProvisionReceiver --es op <op>
  * [--esa packages a,b,c]}. Ops: {@code grant-camera}, {@code hide}, {@code unhide},
+ * {@code pin-wifi} ({@code --es ssid <name> --es bssid <access point, or any to undo>}),
  * {@code release} (give up the device-owner and admin roles, so the app can be uninstalled; works
  * without device owner too). The outcome comes back as the broadcast's result data, which
  * {@code am broadcast} prints.
@@ -51,6 +54,8 @@ public final class ProvisionReceiver extends BroadcastReceiver {
             report(setHidden(dpm, admin, packages, true));
         } else if ("unhide".equals(op)) {
             report(setHidden(dpm, admin, packages, false));
+        } else if ("pin-wifi".equals(op)) {
+            report(pinWifi(context, intent.getStringExtra("ssid"), intent.getStringExtra("bssid")));
         } else {
             report("error: unknown op " + op);
         }
@@ -64,6 +69,39 @@ public final class ProvisionReceiver extends BroadcastReceiver {
     private void report(String message) {
         Log.i(TAG, message);
         setResultData(message);
+    }
+
+    /**
+     * Lock a saved network to one access point, so the phone stops trying to switch between a router's
+     * 5 GHz and 2.4 GHz radios (which share one name) and dropping off for minutes when a switch fails.
+     * The saved password is left as it is. As device owner the app may change a network saved from the
+     * Settings app.
+     *
+     * @param context the receiver's context
+     * @param ssid the saved network's name
+     * @param bssid the access point's address, e.g. {@code aa:bb:cc:dd:ee:ff}, or {@code any} to undo
+     * @return a one-line outcome
+     */
+    private static String pinWifi(Context context, String ssid, String bssid) {
+        if (ssid == null || bssid == null) {
+            return "error: pin-wifi needs ssid and bssid";
+        }
+        WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        for (WifiConfiguration config : wifi.getConfiguredNetworks()) {
+            if (!("\"" + ssid + "\"").equals(config.SSID)) {
+                continue;
+            }
+            config.BSSID = bssid;
+            config.preSharedKey = null;  // null leaves the saved password untouched
+            int networkId = wifi.updateNetwork(config);
+            if (networkId < 0) {
+                return "error: Android refused the change";
+            }
+            boolean isEnabled = wifi.enableNetwork(networkId, true);
+            return "pinned network_id=" + networkId + " bssid=" + bssid + " enabled=" + isEnabled
+                    + " saved=" + wifi.saveConfiguration();
+        }
+        return "error: no saved network named " + ssid;
     }
 
     /**
