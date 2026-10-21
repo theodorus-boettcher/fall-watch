@@ -1,0 +1,177 @@
+{
+  "summaries": [
+    {
+      "model": "before",
+      "clip_set": "caucafall",
+      "falls": 10,
+      "falls_caught": 6,
+      "normal_clips": 10,
+      "false_alarms": 0,
+      "sleeping_clips": 0,
+      "sleeping_alerts": 0,
+      "mean_seconds_to_alert": 4.03
+    }
+  ],
+  "clips": [
+    {
+      "model": "before",
+      "clip": "Subject9/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.17
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.92
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 4.53
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.01
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.63
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 8.9
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    }
+  ]
+}

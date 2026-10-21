@@ -11,6 +11,8 @@ gateway's 5 s.
 
 Clip sets:
     ``--gmdcsa``: GMDCSA-24 (subject folders with ``Fall``/``ADL`` videos and CSVs of time ranges).
+    ``--caucafall``: CAUCAFall's held-out people (``--caucafall-subjects``, 9 and 10 by default): one video per
+    activity; ``Fall *`` activities are falls, and the first frame labelled ``fall`` is when the body is down.
 
 Needs the ``train`` dependency group. Example:
 ``uv run --group train python -m door_counter.eval_falls --model before=models/pose-coco
@@ -38,6 +40,8 @@ PHONE_MIN_SCORE = 0.25  # MIN_SCORE in CounterService.java
 PHONE_OVERLAP_IOU = 0.7  # kOverlapIou in detector.cpp, across classes
 PHONE_FPS_HZ = 5.0
 CLIP_ALERT_AFTER_S = 1.0
+CAUCAFALL_FPS = 23.0
+CAUCAFALL_TEST_SUBJECTS = (9, 10)
 INTERVAL = re.compile(r"([A-Za-z][A-Za-z ()]*?)\s*\[\s*([\d.]+)\s*to\s*([\d.]+)\s*\]")
 
 
@@ -69,6 +73,7 @@ class Summary:
     """One model on one clip set."""
 
     model: str
+    clip_set: str
     falls: int
     falls_caught: int
     normal_clips: int
@@ -115,6 +120,31 @@ def gmdcsa_clips(*, root: Path) -> list[Clip]:
                 clips.append(Clip(name=f"{subject.name.replace(' ', '')}/{kind}/{file_name}", path=video,
                                   is_fall=kind == "Fall", has_sleeping="Sleeping" in ranges,
                                   fall_start_s=None if falling is None else falling[0]))
+    return clips
+
+
+def caucafall_clips(*, root: Path, subjects: Sequence[int]) -> list[Clip]:
+    """List CAUCAFall activity videos of some people.
+
+    Args:
+        root: the folder with ``Subject.1`` to ``Subject.10``.
+        subjects: which people.
+
+    Returns:
+        One clip per activity; for falls, ``fall_start_s`` is the first frame labelled ``fall`` (body down).
+    """
+    clips = []
+    for number in subjects:
+        for activity in sorted(d for d in (root / f"Subject.{number}").iterdir() if d.is_dir()):
+            videos = sorted(activity.glob("*.avi"))
+            if not videos:
+                continue
+            labels = sorted(activity.glob("*.txt"))
+            labels = [p for p in labels if p.name != "classes.txt"]
+            down = next((i for i, p in enumerate(labels) if p.read_text(encoding="utf-8").startswith("1 ")), None)
+            clips.append(Clip(name=f"Subject{number}/{activity.name}", path=videos[0],
+                              is_fall=activity.name.startswith("Fall"), has_sleeping=False,
+                              fall_start_s=None if down is None else down / CAUCAFALL_FPS))
     return clips
 
 
@@ -185,11 +215,12 @@ def run_clip(*, model: YOLO, name: str, clip: Clip) -> ClipResult:
                       alerted=bool(alerts), seconds_to_alert=delay)
 
 
-def summarise(*, model: str, results: Sequence[ClipResult]) -> Summary:
-    """Count falls caught and false alarms for one model.
+def summarise(*, model: str, clip_set: str, results: Sequence[ClipResult]) -> Summary:
+    """Count falls caught and false alarms for one model on one clip set.
 
     Args:
         model: the model's name.
+        clip_set: the set's name.
         results: its clip results.
 
     Returns:
@@ -199,7 +230,7 @@ def summarise(*, model: str, results: Sequence[ClipResult]) -> Summary:
     normal = [r for r in results if not r.is_fall and not r.has_sleeping]
     sleeping = [r for r in results if not r.is_fall and r.has_sleeping]
     delays = [r.seconds_to_alert for r in falls if r.seconds_to_alert is not None]
-    return Summary(model=model, falls=len(falls), falls_caught=sum(r.alerted for r in falls),
+    return Summary(model=model, clip_set=clip_set, falls=len(falls), falls_caught=sum(r.alerted for r in falls),
                    normal_clips=len(normal), false_alarms=sum(r.alerted for r in normal),
                    sleeping_clips=len(sleeping), sleeping_alerts=sum(r.alerted for r in sleeping),
                    mean_seconds_to_alert=round(sum(delays) / len(delays), 2) if delays else None)
@@ -209,21 +240,30 @@ def main() -> None:
     """Score every model on the clips, print a table and save JSON."""
     parser = argparse.ArgumentParser(description="Score fall alerts on labelled clips.")
     parser.add_argument("--model", action="append", required=True, help="name=ncnn folder, e.g. before=models/pose-coco")
-    parser.add_argument("--gmdcsa", type=Path, required=True, help="GMDCSA-24 folder with the Subject folders")
+    parser.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the Subject folders")
+    parser.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the Subject.N folders")
+    parser.add_argument("--caucafall-subjects", type=int, nargs="+", default=list(CAUCAFALL_TEST_SUBJECTS))
     parser.add_argument("--out", type=Path, help="write the results here as JSON")
     args = parser.parse_args()
-    clips = gmdcsa_clips(root=args.gmdcsa)
+    clip_sets = {}
+    if args.gmdcsa is not None:
+        clip_sets["gmdcsa24"] = gmdcsa_clips(root=args.gmdcsa)
+    if args.caucafall is not None:
+        clip_sets["caucafall"] = caucafall_clips(root=args.caucafall, subjects=args.caucafall_subjects)
+    if not clip_sets:
+        parser.error("give --gmdcsa and/or --caucafall")
     summaries, results = [], []
     for spec in args.model:
         name, _, folder = spec.partition("=")
         model = YOLO(model=folder, task="pose")
-        mine = [run_clip(model=model, name=name, clip=clip) for clip in clips]
-        results += mine
-        summaries.append(summarise(model=name, results=mine))
-    print(f"{'model':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} {'s to alert':>11}")
+        for set_name, clips in clip_sets.items():
+            mine = [run_clip(model=model, name=name, clip=clip) for clip in clips]
+            results += mine
+            summaries.append(summarise(model=name, clip_set=set_name, results=mine))
+    print(f"{'model':10} {'clips':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} {'s to alert':>11}")
     for s in summaries:
         delay = "-" if s.mean_seconds_to_alert is None else f"{s.mean_seconds_to_alert:.1f}"
-        print(f"{s.model:10} {s.falls_caught:>6} / {s.falls:<4} {s.false_alarms:>6} / {s.normal_clips:<4} "
+        print(f"{s.model:10} {s.clip_set:10} {s.falls_caught:>6} / {s.falls:<4} {s.false_alarms:>6} / {s.normal_clips:<4} "
               f"{s.sleeping_alerts:>8} / {s.sleeping_clips:<5} {delay:>11}")
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
