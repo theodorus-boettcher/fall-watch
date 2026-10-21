@@ -1,0 +1,2930 @@
+{
+  "summaries": [
+    {
+      "model": "before",
+      "clip_set": "gmdcsa24",
+      "falls": 79,
+      "falls_caught": 35,
+      "normal_clips": 67,
+      "false_alarms": 11,
+      "sleeping_clips": 14,
+      "sleeping_alerts": 6,
+      "mean_seconds_to_alert": 1.69
+    },
+    {
+      "model": "before",
+      "clip_set": "caucafall",
+      "falls": 10,
+      "falls_caught": 6,
+      "normal_clips": 10,
+      "false_alarms": 0,
+      "sleeping_clips": 0,
+      "sleeping_alerts": 0,
+      "mean_seconds_to_alert": 4.03
+    },
+    {
+      "model": "fall-v1",
+      "clip_set": "gmdcsa24",
+      "falls": 79,
+      "falls_caught": 31,
+      "normal_clips": 67,
+      "false_alarms": 11,
+      "sleeping_clips": 14,
+      "sleeping_alerts": 7,
+      "mean_seconds_to_alert": 0.3
+    },
+    {
+      "model": "fall-v1",
+      "clip_set": "caucafall",
+      "falls": 10,
+      "falls_caught": 10,
+      "normal_clips": 10,
+      "false_alarms": 0,
+      "sleeping_clips": 0,
+      "sleeping_alerts": 0,
+      "mean_seconds_to_alert": 1.52
+    }
+  ],
+  "clips": [
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 0.93
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.37
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.63
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.35
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.63
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.23
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.2
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.44
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.24
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject1/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.21
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.92
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 0.41
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -3.1
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.72
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.81
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.72
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/18.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/19.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.06
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/20.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.55
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/21.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.85
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/22.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/23.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.83
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/24.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.93
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/Fall/25.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.82
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/21.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/22.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject2/ADL/23.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.34
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.41
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/18.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/19.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/20.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/Fall/21.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.83
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/21.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject3/ADL/22.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": 0.91
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.32
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.51
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.23
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.62
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.82
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.92
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.52
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.61
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.22
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject4/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.17
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.92
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 4.53
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject9/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.01
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.63
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 8.9
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "Subject10/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.74
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.24
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.86
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.13
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.02
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.65
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject1/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.03
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 4.8
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.29
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -6.49
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.01
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -1.29
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/18.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -8.59
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/19.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -6.99
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/20.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -6.49
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/21.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -4.99
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/22.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.33
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/23.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -0.58
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/24.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -1.49
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/Fall/25.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -1.79
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/21.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/22.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject2/ADL/23.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.93
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": -3.49
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.82
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.89
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.81
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.99
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/18.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.4
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/19.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/20.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.28
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/Fall/21.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/21.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject3/ADL/22.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/01.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/02.mp4",
+      "is_fall": true,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/03.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 2.12
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/04.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/05.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.52
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/06.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/07.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/08.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.51
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/09.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/10.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/11.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/12.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/13.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/14.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/15.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/16.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/Fall/17.mp4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/01.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/02.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/03.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/04.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/05.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/06.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/07.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/08.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/09.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/10.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/11.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/12.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/13.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/14.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/15.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/16.mp4",
+      "is_fall": false,
+      "has_sleeping": true,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/17.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/18.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/19.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject4/ADL/20.mp4",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.37
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.37
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.41
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.52
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.73
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject9/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Fall backwards",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 0.81
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Fall forward",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.3
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Fall left",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.43
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Fall right",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 1.18
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Fall sitting",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": 3.1
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Hop",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Kneel",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Pick up object",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Sit down",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v1",
+      "clip": "Subject10/Walk",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    }
+  ]
+}
