@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -49,6 +50,7 @@ public final class CounterService extends Service {
     private final MotionGate motionGate = new MotionGate(MOTION_HOLD_S, IDLE_INTERVAL_S);
     private Settings settings;
     private PowerManager.WakeLock wakeLock;
+    private WifiManager.WifiLock wifiLock;
     private GatewayClient gateway;
     private HandlerThread cameraThread;
     private Handler cameraHandler;
@@ -87,6 +89,10 @@ public final class CounterService extends Service {
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         wakeLock.acquire();
+        // Without it, Wi-Fi power saving with the screen off holds back sends for seconds at a time.
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, TAG);
+        wifiLock.acquire();
         detectorThread = new HandlerThread("detector");
         detectorThread.start();
         detectorHandler = new Handler(detectorThread.getLooper());
@@ -118,6 +124,9 @@ public final class CounterService extends Service {
         }
         if (wakeLock != null) {
             wakeLock.release();
+        }
+        if (wifiLock != null) {
+            wifiLock.release();
         }
         super.onDestroy();
     }
