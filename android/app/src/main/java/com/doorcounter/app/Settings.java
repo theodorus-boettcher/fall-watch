@@ -10,7 +10,7 @@ final class Settings {
     static final int DEFAULT_ROTATION_DEG = 0;
     static final int DEFAULT_THREAD_COUNT = 4;
     /** Asset path of the model without extension; the app ships every model under {@code assets/models/}. */
-    static final String DEFAULT_MODEL_NAME = "models/pose-coco";
+    static final String DEFAULT_MODEL_NAME = "models/fall-v2";
     private static final String MODEL_NAME_PATTERN = "models/[a-z0-9-]{1,40}";
 
     private static final String PREFS_NAME = "settings";
@@ -31,7 +31,7 @@ final class Settings {
     final int threadCount;
     /** Skip the model while nothing moves (see {@link MotionGate}). On by default. */
     final boolean isMotionGateEnabled;
-    /** Which bundled model runs, e.g. {@code models/pose-coco} (ready-made) or {@code models/fall-v1}. */
+    /** Which bundled model runs, e.g. {@code models/pose-coco} (ready-made) or {@code models/fall-v2}. */
     final String modelName;
 
     private Settings(int rotationDeg, String gatewayUrl, boolean isPreviewEnabled, int threadCount,
