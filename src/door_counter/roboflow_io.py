@@ -14,8 +14,11 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import roboflow
+import yaml
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.core.project import Project
+
+from door_counter.fall_data import FLIP_INDEX
 
 PROJECT_ID = "fall-watch"
 PROJECT_TYPE = "keypoint-detection"
@@ -147,9 +150,12 @@ def upload_dataset(*, api_key: str, dataset_dir: Path, batch_name: str) -> objec
 def export_version(*, project: Project, out_dir: Path) -> Path:
     """Make a dataset version with no resizing or augmentation, and download it in YOLO format.
 
+    Roboflow writes ``flip_idx`` as 0..16 (no left/right swap); for the COCO skeleton that would teach
+    mirrored pictures the wrong side, so the COCO swap is written back.
+
     Args:
         project: the Roboflow project.
-        out_dir: where the export goes (``data.yaml``, ``train/``, ``valid/``).
+        out_dir: where the export goes (``data.yaml``, ``train/``, ``valid/``, ``test/``).
 
     Returns:
         The export folder.
@@ -158,6 +164,11 @@ def export_version(*, project: Project, out_dir: Path) -> Path:
     for _ in range(VERSION_WAIT_TRIES):
         try:
             project.version(number).download("yolov8", location=str(out_dir), overwrite=True)
+            data_yaml = out_dir / "data.yaml"
+            spec = yaml.safe_load(data_yaml.read_text(encoding="utf-8"))
+            spec.update(flip_idx=list(FLIP_INDEX), path=str(out_dir.resolve()), train="train/images",
+                        val="valid/images", test="test/images")
+            data_yaml.write_text(yaml.safe_dump(spec, sort_keys=False), encoding="utf-8")
             return out_dir
         except (RuntimeError, RoboflowError) as e:  # still being generated, or Roboflow's passing 'Internal Error'
             print(f"version {number} not ready ({e}); waiting", flush=True)
