@@ -35,6 +35,11 @@
            margin-bottom: 10px; font-weight: 700; align-items: center; justify-content: space-between; gap: 12px; }
   #alert button { font: inherit; font-weight: 600; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
   ol { margin: 8px 0 0; padding-left: 20px; }
+  .record { display: flex; gap: 6px; margin-top: 8px; }
+  .record input { flex: 1; min-width: 0; font: inherit; padding: 4px 6px; border: 1px solid var(--line);
+                  border-radius: 6px; background: var(--bg); color: var(--text); }
+  .record button { font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px;
+                   background: var(--panel); color: var(--text); cursor: pointer; }
   li { margin: 2px 0; }
 </style>
 </head>
@@ -64,6 +69,11 @@
       <dt>frame</dt><dd id="frame">-</dd>
       <dt>recording</dt><dd id="capture">-</dd>
     </dl>
+    <div class="record">
+      <input id="clip" placeholder="clip name, e.g. test-fall-1" maxlength="48" autocomplete="off">
+      <button id="rec-start" type="button">Record</button>
+      <button id="rec-stop" type="button">Stop</button>
+    </div>
   </aside>
 </main>
 <script>
@@ -180,6 +190,16 @@
 
   document.getElementById("clear").addEventListener("click", () => {
     fetch("/alerts/clear", { method: "POST" });
+  });
+  // Recording saves the preview pictures into data/captures/<clip>/ (previews must be on).
+  document.getElementById("rec-start").addEventListener("click", async () => {
+    const name = document.getElementById("clip").value.trim();
+    if (!name) { return; }
+    const res = await fetch("/capture?clip=" + encodeURIComponent(name), { method: "POST" });
+    if (!res.ok) { alert("cannot record: " + (await res.text())); }
+  });
+  document.getElementById("rec-stop").addEventListener("click", () => {
+    fetch("/capture?clip=", { method: "POST" });
   });
 
   async function poll() {

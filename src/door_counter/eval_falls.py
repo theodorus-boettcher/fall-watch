@@ -13,6 +13,8 @@ Clip sets:
     ``--gmdcsa``: GMDCSA-24 (subject folders with ``Fall``/``ADL`` videos and CSVs of time ranges).
     ``--caucafall``: CAUCAFall's held-out people (``--caucafall-subjects``, 9 and 10 by default): one video per
     activity; ``Fall *`` activities are falls, and the first frame labelled ``fall`` is when the body is down.
+    ``--captures``: our own test clips recorded with the gateway (``test-fall-*`` are falls, other ``test-*``
+    clips are normal). Their pictures are named ``<session>_<frame id>.jpg``; times come from the frame ids.
 
 Needs the ``train`` dependency group. Example:
 ``uv run --group train python -m door_counter.eval_falls --model before=models/pose-coco
@@ -41,6 +43,7 @@ PHONE_OVERLAP_IOU = 0.7  # kOverlapIou in detector.cpp, across classes
 PHONE_FPS_HZ = 5.0
 CLIP_ALERT_AFTER_S = 1.0
 CAUCAFALL_FPS = 23.0
+PHONE_FRAME_RATE_HZ = 5.5  # measured on the S5 with YOLO26n-pose at 320; turns capture frame ids into times
 CAUCAFALL_TEST_SUBJECTS = (9, 10)
 INTERVAL = re.compile(r"([A-Za-z][A-Za-z ()]*?)\s*\[\s*([\d.]+)\s*to\s*([\d.]+)\s*\]")
 
@@ -148,15 +151,35 @@ def caucafall_clips(*, root: Path, subjects: Sequence[int]) -> list[Clip]:
     return clips
 
 
+def capture_clips(*, root: Path) -> list[Clip]:
+    """List our recorded test clips.
+
+    Args:
+        root: the capture folder (``data/captures``).
+
+    Returns:
+        One clip per ``test-*`` folder; ``test-fall-*`` ones are falls (fall time not known).
+    """
+    return [Clip(name=d.name, path=d, is_fall=d.name.startswith("test-fall"), has_sleeping=False, fall_start_s=None)
+            for d in sorted(root.iterdir()) if d.is_dir() and d.name.startswith("test-")]
+
+
 def sampled_frames(*, video: Path) -> Iterator[tuple[float, npt.NDArray[np.uint8]]]:
     """Yield (time in seconds, BGR picture) at about the phone's rate.
 
     Args:
-        video: the video file.
+        video: a video file, or a capture folder of ``<session>_<frame id>.jpg`` pictures (already upright).
 
     Returns:
         A generator of timed pictures.
     """
+    if video.is_dir():
+        for picture_path in sorted(video.glob("*.jpg")):
+            picture = cv2.imread(str(picture_path))
+            if picture is not None:
+                yield int(picture_path.stem.rsplit("_", maxsplit=1)[-1]) / PHONE_FRAME_RATE_HZ, np.asarray(
+                    picture, dtype=np.uint8)
+        return None
     capture = cv2.VideoCapture(str(video))
     fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
     step = max(1, round(fps / PHONE_FPS_HZ))
@@ -243,6 +266,7 @@ def main() -> None:
     parser.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the Subject folders")
     parser.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the Subject.N folders")
     parser.add_argument("--caucafall-subjects", type=int, nargs="+", default=list(CAUCAFALL_TEST_SUBJECTS))
+    parser.add_argument("--captures", type=Path, help="our capture folder with test-* clips")
     parser.add_argument("--out", type=Path, help="write the results here as JSON")
     args = parser.parse_args()
     clip_sets = {}
@@ -250,8 +274,10 @@ def main() -> None:
         clip_sets["gmdcsa24"] = gmdcsa_clips(root=args.gmdcsa)
     if args.caucafall is not None:
         clip_sets["caucafall"] = caucafall_clips(root=args.caucafall, subjects=args.caucafall_subjects)
+    if args.captures is not None:
+        clip_sets["ours"] = capture_clips(root=args.captures)
     if not clip_sets:
-        parser.error("give --gmdcsa and/or --caucafall")
+        parser.error("give --gmdcsa, --caucafall and/or --captures")
     summaries, results = [], []
     for spec in args.model:
         name, _, folder = spec.partition("=")
