@@ -1,7 +1,7 @@
 [project]
 name = "door-counter"
 version = "0.1.0"
-description = "Recycling sorting line: a tiny segmentation model on a 2014 Android phone, counting on a laptop gateway."
+description = "Fall watch: a tiny pose model on a 2014 Android phone, alerts on a laptop gateway."
 requires-python = ">=3.12"
 dependencies = [
     "ncnn>=1.0.20260526",
