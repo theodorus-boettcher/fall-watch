@@ -1,13 +1,6 @@
 """Tests for scoring fall alerts on clips."""
 
-from door_counter.eval_falls import ClipResult, parse_intervals, summarise
-
-
-def test_parse_intervals_reads_gmdcsa_ranges() -> None:
-    line = ("05.mp4,05, Day (Light On),Full T-shirt & Trousers, Walking to falling. Right side fall, "
-            "Falling (SW)[1.8 to 5]:; Walking[0 to 1.8]")
-    assert parse_intervals(text=line) == {"Falling": (1.8, 5.0), "Walking": (0.0, 1.8)}
-    assert parse_intervals(text="Sitting[0 to 1]; Sleeping[2 to 8]")["Sleeping"] == (2.0, 8.0)
+from door_counter.eval_falls import ClipResult, summarise
 
 
 def test_summary_keeps_sleeping_out_of_false_alarms() -> None:

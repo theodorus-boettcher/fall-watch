@@ -5,7 +5,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from door_counter.fall_data import TeacherPerson, coco_keypoints, match_teacher, read_yolo_box, yolo_line
+from door_counter.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher, posture_at,
+                                     read_yolo_box, yolo_line)
 from door_counter.yolo_pose import Rect
 
 
@@ -44,3 +45,25 @@ def test_keypoints_unseen_or_unmatched_are_not_labelled() -> None:
     line = yolo_line(class_id=1, box=Rect(x1=0.0, y1=0.0, x2=0.5, y2=0.5), keypoints=sure, width_px=640,
                      height_px=480)
     assert line.split()[:8] == ["1", "0.25000", "0.25000", "0.50000", "0.50000", "0.25000", "0.25000", "1.00000"]
+
+
+def test_activity_ranges_read_gmdcsa_lines() -> None:
+    line = ("05.mp4,05, Day (Light On),Full T-shirt & Trousers, Walking to falling. Right side fall, "
+            "Falling (SW)[1.8 to 5]:; Walking[0 to 1.8]")
+    assert activity_ranges(text=line) == {"Falling": [(1.8, 5.0)], "Walking": [(0.0, 1.8)]}
+    assert activity_ranges(text="Fall (FW)[2 to 4]; Standing[4.5 to 6.2; 10 to 13]") == {
+        "Falling": [(2.0, 4.0)], "Standing": [(4.5, 6.2), (10.0, 13.0)]}
+
+
+def test_posture_comes_from_the_time() -> None:
+    fall = activity_ranges(text="Falling (SW)[3.4 to 6]; Sitting[0 to 3.4]")
+    assert posture_at(ranges=fall, time_s=1.0) == 0  # sitting
+    assert posture_at(ranges=fall, time_s=4.0) is None  # on the way down
+    assert posture_at(ranges=fall, time_s=5.0) == 1  # on the floor
+    bed = activity_ranges(text="Sitting[0 to 1]; Sleeping[2 to 8]")
+    assert posture_at(ranges=bed, time_s=5.0) == 1
+    assert posture_at(ranges=bed, time_s=1.5) is None  # nothing named
+    push = activity_ranges(text="Exercising[1.9 to 8.3]; Sitting[9.5 to 10.5]")
+    assert posture_at(ranges=push, time_s=5.0) is None
+    clash = activity_ranges(text="Sleeping[0 to 5]; Sitting[4 to 6]")
+    assert posture_at(ranges=clash, time_s=4.5) is None

@@ -23,7 +23,6 @@ Needs the ``train`` dependency group. Example:
 
 import argparse
 import json
-import re
 from collections.abc import Iterator, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -33,6 +32,7 @@ import numpy as np
 import numpy.typing as npt
 from ultralytics.models import YOLO
 
+from door_counter.fall_data import activity_ranges
 from door_counter.gateway.fall_watch import FallWatch
 from door_counter.gateway.messages import Frame, Item
 from door_counter.yolo_pose import Keypoint, Rect
@@ -45,7 +45,6 @@ CLIP_ALERT_AFTER_S = 1.0
 CAUCAFALL_FPS = 23.0
 PHONE_FRAME_RATE_HZ = 5.5  # measured on the S5 with YOLO26n-pose at 320; turns capture frame ids into times
 CAUCAFALL_TEST_SUBJECTS = (9, 10)
-INTERVAL = re.compile(r"([A-Za-z][A-Za-z ()]*?)\s*\[\s*([\d.]+)\s*to\s*([\d.]+)\s*\]")
 
 
 @dataclass(frozen=True)
@@ -86,43 +85,29 @@ class Summary:
     mean_seconds_to_alert: float | None
 
 
-def parse_intervals(*, text: str) -> dict[str, tuple[float, float]]:
-    """Read GMDCSA-24 activity ranges like ``Falling (SW)[3.4 to 6]; Sitting[0 to 3.4]``.
-
-    Args:
-        text: a CSV line or its classes field.
-
-    Returns:
-        Activity name (first word, e.g. ``Falling``) -> (start, end) in seconds; the first range wins.
-    """
-    found: dict[str, tuple[float, float]] = {}
-    for name, start, end in INTERVAL.findall(text):
-        found.setdefault(name.split()[0], (float(start), float(end)))
-    return found
-
-
-def gmdcsa_clips(*, root: Path) -> list[Clip]:
+def gmdcsa_clips(*, root: Path, subjects: Sequence[int] = (1, 2, 3, 4)) -> list[Clip]:
     """List the GMDCSA-24 clips with their labels.
 
     Args:
         root: the folder with ``Subject 1`` to ``Subject 4``.
+        subjects: which people (person 4 is alone in room 3, the part no model trains on).
 
     Returns:
         Every clip named in a ``Fall.csv`` or ``ADL.csv`` whose video exists.
     """
     clips = []
-    for subject in sorted(p for p in root.iterdir() if p.is_dir() and p.name.startswith("Subject")):
+    for subject in sorted(root / f"Subject {n}" for n in subjects):
         for kind in ("Fall", "ADL"):
             for line in (subject / f"{kind}.csv").read_text(encoding="utf-8").splitlines()[1:]:
                 file_name = line.split(",", maxsplit=1)[0].strip()
                 video = subject / kind / file_name
                 if not file_name or not video.is_file():
                     continue
-                ranges = parse_intervals(text=line)
+                ranges = activity_ranges(text=line)
                 falling = ranges.get("Falling")
                 clips.append(Clip(name=f"{subject.name.replace(' ', '')}/{kind}/{file_name}", path=video,
                                   is_fall=kind == "Fall", has_sleeping="Sleeping" in ranges,
-                                  fall_start_s=None if falling is None else falling[0]))
+                                  fall_start_s=falling[0][0] if falling else None))
     return clips
 
 
@@ -264,6 +249,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Score fall alerts on labelled clips.")
     parser.add_argument("--model", action="append", required=True, help="name=ncnn folder, e.g. before=models/pose-coco")
     parser.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the Subject folders")
+    parser.add_argument("--gmdcsa-subjects", type=int, nargs="+", default=[1, 2, 3, 4])
     parser.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the Subject.N folders")
     parser.add_argument("--caucafall-subjects", type=int, nargs="+", default=list(CAUCAFALL_TEST_SUBJECTS))
     parser.add_argument("--captures", type=Path, help="our capture folder with test-* clips")
@@ -271,7 +257,7 @@ def main() -> None:
     args = parser.parse_args()
     clip_sets = {}
     if args.gmdcsa is not None:
-        clip_sets["gmdcsa24"] = gmdcsa_clips(root=args.gmdcsa)
+        clip_sets["gmdcsa24"] = gmdcsa_clips(root=args.gmdcsa, subjects=args.gmdcsa_subjects)
     if args.caucafall is not None:
         clip_sets["caucafall"] = caucafall_clips(root=args.caucafall, subjects=args.caucafall_subjects)
     if args.captures is not None:
