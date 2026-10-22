@@ -2,11 +2,13 @@
 # Run the phone at a fixed setting for a while and log its health every 30 s, read from the gateway.
 # Stops early if the battery gets hotter than MAX_BATTERY_C or emptier than MIN_BATTERY_PCT.
 # Usage: heat_run.sh <label> <seconds> <motion_gate true|false>   (writes measurements/heat-<label>.csv)
-# Needs the gateway running on the laptop and adb reverse tcp:8000 tcp:8000. Preview stays off.
+# Needs the gateway running on the laptop: at GATEWAY_URL, or over USB after adb reverse tcp:8000 tcp:8000.
+# With the phone on both USB and Wi-Fi adb, pick one with ANDROID_SERIAL. Preview stays off.
 set -euo pipefail
 label="$1"; duration_s="$2"; motion_gate="$3"
 MAX_BATTERY_C="${MAX_BATTERY_C:-45}"
 MIN_BATTERY_PCT="${MIN_BATTERY_PCT:-25}"
+GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:8000}"
 out="$(cd "$(dirname "$0")/.." && pwd)/measurements/heat-${label}.csv"
 
 adb shell am broadcast -n com.doorcounter.app/.ConfigReceiver --ez preview false --ez motion_gate "${motion_gate}" \
@@ -17,7 +19,7 @@ start=$(date +%s)
 stop_reason="time"
 while [ $(( $(date +%s) - start )) -lt "${duration_s}" ]; do
   sleep 30
-  row=$(curl -s --max-time 5 http://127.0.0.1:8000/api/latest | python3 -c '
+  row=$(curl -s --max-time 5 "${GATEWAY_URL}/api/latest" | python3 -c '
 import json, sys
 h = json.load(sys.stdin).get("health")
 if h:

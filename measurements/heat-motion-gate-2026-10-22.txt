@@ -1,0 +1,6 @@
+Galaxy S5, fall-v3 (YOLO26n-pose 320, ncnn), motion gate on, preview off, 4 threads, on the laptop's USB.
+Reading from the gateway after 3 h 15 min (uptime 11711 s), 2026-10-23 01:55 CEST:
+  processor 55 C, battery 33.5 C, battery 23% and charging (25% at the start), 0.99 frames/s,
+  mean inference 0.33 s, 0 frames dropped, 0 alerts raised.
+Before (motion gate off, preview on, see heat-full-load-usb-2026-10-20.csv): 81 to 91 C, silent after 11 minutes,
+  battery 41% to 1% in about 55 minutes.
