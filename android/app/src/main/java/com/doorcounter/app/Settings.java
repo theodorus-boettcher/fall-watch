@@ -10,7 +10,7 @@ final class Settings {
     static final int DEFAULT_ROTATION_DEG = 0;
     static final int DEFAULT_THREAD_COUNT = 4;
     /** Asset path of the model without extension; the app ships every model under {@code assets/models/}. */
-    static final String DEFAULT_MODEL_NAME = "models/fall-v2";
+    static final String DEFAULT_MODEL_NAME = "models/fall-v3";
     private static final String MODEL_NAME_PATTERN = "models/[a-z0-9-]{1,40}";
 
     private static final String PREFS_NAME = "settings";
