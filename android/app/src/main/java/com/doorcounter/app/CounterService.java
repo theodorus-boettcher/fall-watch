@@ -207,9 +207,10 @@ public final class CounterService extends Service {
         frameHeightPx = size.height;
         params.setPreviewSize(frameWidthPx, frameHeightPx);
         params.setPreviewFormat(ImageFormat.NV21);
-        // People move: continuous video focus adjusts smoothly instead of hunting like the photo mode.
-        if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-            params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        // Fixed far focus: at 320 px everything past about half a metre is sharp, and focus never hunts
+        // when people move (continuous focus went soft every time someone walked by).
+        if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY)) {
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
         }
         camera.setParameters(params);
         previewTexture = new SurfaceTexture(OFFSCREEN_TEXTURE_NAME);
