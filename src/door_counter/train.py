@@ -18,6 +18,11 @@ DEFAULT_BASE_MODEL = "yolo26n-pose.pt"
 DEFAULT_IMAGE_SIZE_PX = 320  # what the phone runs
 DEFAULT_EPOCHS = 80
 DEFAULT_BATCH = 32
+# What optimizer="auto" picked for fall-v1 and fall-v2. Fixed, because "auto" switches to MuSGD at a 6x higher
+# rate once a run passes 10,000 steps, so a bigger dataset would also change the optimizer.
+OPTIMIZER = "AdamW"
+LEARNING_RATE = 0.001667
+MOMENTUM = 0.9
 SPLIT_KEYS = {"val": "val", "test": "test"}  # our split name -> data.yaml key
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 
@@ -68,6 +73,9 @@ def train(*, config: TrainConfig) -> Path:
         name=config.name,
         exist_ok=True,
         patience=20,
+        optimizer=OPTIMIZER,
+        lr0=LEARNING_RATE,
+        momentum=MOMENTUM,
         plots=True,
         verbose=False,
     )
