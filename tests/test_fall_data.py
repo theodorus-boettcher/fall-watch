@@ -2,11 +2,12 @@
 
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 
 from door_counter.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher, posture_at,
-                                     read_yolo_box, yolo_line)
+                                     read_yolo_box, room_samples, yolo_line)
 from door_counter.yolo_pose import Rect
 
 
@@ -67,3 +68,15 @@ def test_posture_comes_from_the_time() -> None:
     assert posture_at(ranges=push, time_s=5.0) is None
     clash = activity_ranges(text="Sleeping[0 to 5]; Sitting[4 to 6]")
     assert posture_at(ranges=clash, time_s=4.5) is None
+
+
+def test_room_posture_comes_from_the_clip_name(tmp_path: Path) -> None:
+    for clip in ("room-up-1", "room-lying-2", "room-empty-1", "test-fall-1"):
+        (tmp_path / clip).mkdir()
+        cv2.imwrite(str(tmp_path / clip / "1_00000001.jpg"), np.zeros((24, 32, 3), dtype=np.uint8))
+    found = {s.stem: (s.split, s.class_id, s.box) for s in room_samples(root=tmp_path)}
+    assert found == {"room-empty-1_1_00000001": ("train", None, None), "room-lying-2_1_00000001": ("train", 1, None),
+                     "room-up-1_1_00000001": ("train", 0, None)}
+    (tmp_path / "room-sitting-1").mkdir()
+    with pytest.raises(ValueError, match="room-sitting-1"):
+        list(room_samples(root=tmp_path))

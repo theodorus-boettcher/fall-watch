@@ -12,6 +12,11 @@ activity and no boxes. The posture comes from the time (``posture_at``) and the 
 the teacher; frames where it does not find exactly one person are left out. About 5 pictures per second
 are kept.
 
+Our own room (``--room``, the gateway's capture folder) has ``room-up-*`` clips (never lying),
+``room-lying-*`` clips (on the floor the whole time) and ``room-empty-*`` clips (nobody, kept as background
+pictures with no label). The posture comes from the clip name, the box and keypoints from the teacher. All
+of it goes to train; the room's ``test-*`` clips are the test.
+
 The split goes by person (``SPLIT_OF_SUBJECT``, ``GMDCSA_SPLIT_OF_SUBJECT``), so the same person is never
 in two splits; GMDCSA-24's room 3 (person 4) is the test. Pictures are scaled to ``SIDE_PX``.
 
@@ -54,6 +59,7 @@ GMDCSA_EVERY_S = 0.2
 FALL_SETTLE_S = 1.0  # the first second of "Falling" is the way down: neither posture
 LYING_ACTIVITIES = ("Sleeping",)
 UNCLEAR_ACTIVITIES = ("Exercising",)  # push-ups and yoga: left out
+ROOM_CLASS_OF_KIND = {"room-up": 0, "room-lying": 1, "room-empty": None}  # clip name without its number
 
 
 @dataclass(frozen=True)
@@ -67,12 +73,12 @@ class Labelled:
 
 @dataclass(frozen=True)
 class Sample:
-    """One picture to label: where it goes, our class, and the box if the dataset has one (0..1)."""
+    """One picture to label: where it goes, our class (None: nobody there), and the box if the dataset has one."""
 
     split: str
     stem: str
     bgr: npt.NDArray[np.uint8]
-    class_id: int
+    class_id: int | None
     box: Rect | None
 
 
@@ -213,6 +219,20 @@ def gmdcsa_samples(*, root: Path) -> Iterator[Sample]:
     return None
 
 
+def room_samples(*, root: Path) -> Iterator[Sample]:
+    """Our room's ``room-*`` capture clips, the posture from the clip name, all in train (no boxes)."""
+    for clip in sorted(d for d in root.iterdir() if d.is_dir() and d.name.startswith("room-")):
+        kind = clip.name.rsplit("-", maxsplit=1)[0]
+        if kind not in ROOM_CLASS_OF_KIND:
+            raise ValueError(f"{clip.name}: room clips are named room-up-N, room-lying-N or room-empty-N")
+        for image in sorted(clip.glob("*.jpg")):
+            bgr = cv2.imread(str(image))
+            if bgr is not None:
+                yield Sample(split="train", stem=f"{clip.name}_{image.stem}", bgr=np.asarray(bgr, dtype=np.uint8),
+                             class_id=ROOM_CLASS_OF_KIND[kind], box=None)
+    return None
+
+
 def match_teacher(*, box: Rect, people: Sequence[TeacherPerson]) -> TeacherPerson | None:
     """The teacher's person that overlaps the labelled box most, if by ``MATCH_IOU`` or more."""
     best, best_iou = None, MATCH_IOU
@@ -273,12 +293,14 @@ def main() -> None:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the 10 subject folders")
     source.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the 4 subject folders")
+    source.add_argument("--room", type=Path, help="our capture folder with the room-* clips")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     from rfdetr import RFDETRKeypointPreview  # heavy; only the converter needs it
 
     teacher = RFDETRKeypointPreview()
-    samples = caucafall_samples(root=args.caucafall) if args.caucafall else gmdcsa_samples(root=args.gmdcsa)
+    samples = (caucafall_samples(root=args.caucafall) if args.caucafall
+               else gmdcsa_samples(root=args.gmdcsa) if args.gmdcsa else room_samples(root=args.room))
     categories = [{"id": i + 1, "name": n, "supercategory": "person", "keypoints": list(KEYPOINT_NAMES),
                    "skeleton": [list(e) for e in SKELETON]} for i, n in enumerate(CLASS_NAMES)]
     cocos: dict[str, dict[str, list[object]]] = {
@@ -287,7 +309,10 @@ def main() -> None:
     for sample in samples:
         rgb = np.asarray(cv2.cvtColor(sample.bgr, cv2.COLOR_BGR2RGB), dtype=np.uint8)
         people = run_teacher(model=teacher, image_rgb=rgb)
-        if sample.box is not None:
+        box: Rect | None
+        if sample.class_id is None:
+            box, person = None, None  # nobody there: a background picture, whatever the teacher thinks
+        elif sample.box is not None:
             box, person = sample.box, match_teacher(box=sample.box, people=people)
         elif len(people) == 1:
             box, person = people[0].box, people[0]
@@ -302,13 +327,17 @@ def main() -> None:
         (split_dir / "images").mkdir(parents=True, exist_ok=True)
         (split_dir / "labels").mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(split_dir / "images" / f"{sample.stem}.jpg"), small, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+        coco = cocos[sample.split]
+        image_id = len(coco["images"]) + 1
+        coco["images"].append({"id": image_id, "file_name": f"{sample.stem}.jpg", "width": width, "height": height})
+        if sample.class_id is None or box is None:
+            (split_dir / "labels" / f"{sample.stem}.txt").write_text("", encoding="utf-8")
+            kept += 1
+            continue
         keypoints = coco_keypoints(person=person, width_px=width, height_px=height)
         (split_dir / "labels" / f"{sample.stem}.txt").write_text(
             yolo_line(class_id=sample.class_id, box=box, keypoints=keypoints, width_px=width, height_px=height) + "\n",
             encoding="utf-8")
-        coco = cocos[sample.split]
-        image_id = len(coco["images"]) + 1
-        coco["images"].append({"id": image_id, "file_name": f"{sample.stem}.jpg", "width": width, "height": height})
         coco["annotations"].append({
             "id": image_id, "image_id": image_id, "category_id": sample.class_id + 1, "iscrowd": 0,
             "bbox": [round(box.x1 * width, 1), round(box.y1 * height, 1), round((box.x2 - box.x1) * width, 1),
