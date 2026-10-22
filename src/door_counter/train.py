@@ -102,8 +102,8 @@ def count_images(*, data_yaml: Path, split: str) -> int:
         spec = yaml.safe_load(f)
     folders = spec[SPLIT_KEYS[split]]
     folders = folders if isinstance(folders, list) else [folders]
-    return sum(1 for folder in folders for p in (Path(spec["path"]) / folder).iterdir()
-               if p.suffix.lower() in IMAGE_SUFFIXES)
+    root = Path(spec.get("path") or data_yaml.parent)  # no path: the yaml's own folder, as Ultralytics does
+    return sum(1 for folder in folders for p in (root / folder).iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
 
 
 def score(*, weights: Path, data_yaml: Path, split: str, image_size_px: int) -> Scores:

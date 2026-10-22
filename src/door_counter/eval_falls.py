@@ -7,7 +7,7 @@ one is a false alarm. Normal clips where someone sleeps are counted apart: in a 
 covers them.
 
 The public clips are short (4 to 10 s), so the alert comes after ``CLIP_ALERT_AFTER_S`` here instead of the
-gateway's 5 s.
+gateway's 5 s. Our own clips are long enough for the gateway's time (``--captures-alert-after-s 5``).
 
 Clip sets:
     ``--gmdcsa``: GMDCSA-24 (subject folders with ``Fall``/``ADL`` videos and CSVs of time ranges).
@@ -198,7 +198,8 @@ def people_of(*, result: object) -> tuple[Item, ...]:
     )
 
 
-def run_clip(*, model: YOLO, name: str, clip: Clip, beds: Sequence[Rect] = ()) -> ClipResult:
+def run_clip(*, model: YOLO, name: str, clip: Clip, beds: Sequence[Rect] = (),
+             alert_after_s: float = CLIP_ALERT_AFTER_S) -> ClipResult:
     """Play one clip through the model and the fall watch.
 
     Args:
@@ -206,11 +207,12 @@ def run_clip(*, model: YOLO, name: str, clip: Clip, beds: Sequence[Rect] = ()) -
         name: the model's name in the report.
         clip: the clip.
         beds: bed zones in 0..1 of the picture, where lying raises no alert.
+        alert_after_s: how long someone must lie outside a bed before the alert.
 
     Returns:
         Whether it alerted, and how long after the fall started.
     """
-    watch = FallWatch(beds=beds, alert_after_s=CLIP_ALERT_AFTER_S)
+    watch = FallWatch(beds=beds, alert_after_s=alert_after_s)
     class_names = [model.names[i] for i in sorted(model.names)]
     for k, (time_s, picture) in enumerate(sampled_frames(video=clip.path)):
         (result,) = list(model.predict(source=picture, imgsz=PHONE_INPUT_SIZE_PX, conf=PHONE_MIN_SCORE,
@@ -257,6 +259,8 @@ def main() -> None:
     parser.add_argument("--captures", type=Path, help="our capture folder with test-* clips")
     parser.add_argument("--bed", type=lambda text: parse_bed(text=text), action="append", default=[],
                         help="bed zone of the --captures room, x1,y1,x2,y2 in 0..1 (repeat for more beds)")
+    parser.add_argument("--captures-alert-after-s", type=float, default=CLIP_ALERT_AFTER_S,
+                        help="alert time for the --captures clips (the gateway uses 5)")
     parser.add_argument("--out", type=Path, help="write the results here as JSON")
     args = parser.parse_args()
     clip_sets = {}
@@ -273,8 +277,10 @@ def main() -> None:
         name, _, folder = spec.partition("=")
         model = YOLO(model=folder, task="pose")
         for set_name, clips in clip_sets.items():
-            beds = args.bed if set_name == "ours" else []
-            mine = [run_clip(model=model, name=name, clip=clip, beds=beds) for clip in clips]
+            ours = set_name == "ours"
+            mine = [run_clip(model=model, name=name, clip=clip, beds=args.bed if ours else [],
+                             alert_after_s=args.captures_alert_after_s if ours else CLIP_ALERT_AFTER_S)
+                    for clip in clips]
             results += mine
             summaries.append(summarise(model=name, clip_set=set_name, results=mine))
     print(f"{'model':10} {'clips':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} {'s to alert':>11}")
