@@ -14,8 +14,9 @@ are kept.
 
 Our own room (``--room``, the gateway's capture folder) has ``room-up-*`` clips (never lying),
 ``room-lying-*`` clips (on the floor the whole time) and ``room-empty-*`` clips (nobody, kept as background
-pictures with no label). The posture comes from the clip name, the box and keypoints from the teacher. All
-of it goes to train; the room's ``test-*`` clips are the test.
+pictures with no label). The posture comes from the clip name, the box and keypoints from the teacher. Only
+the user is ever in these clips, so when the teacher finds several people (it often adds partial boxes on a
+lying body) its top-scored one is taken. All of it goes to train; the room's ``test-*`` clips are the test.
 
 The split goes by person (``SPLIT_OF_SUBJECT``, ``GMDCSA_SPLIT_OF_SUBJECT``), so the same person is never
 in two splits; GMDCSA-24's room 3 (person 4) is the test. Pictures are scaled to ``SIDE_PX``.
@@ -80,6 +81,7 @@ class Sample:
     bgr: npt.NDArray[np.uint8]
     class_id: int | None
     box: Rect | None
+    one_person: bool = False  # only one person is ever in the picture: take the teacher's best if it finds more
 
 
 @dataclass(frozen=True)
@@ -229,7 +231,7 @@ def room_samples(*, root: Path) -> Iterator[Sample]:
             bgr = cv2.imread(str(image))
             if bgr is not None:
                 yield Sample(split="train", stem=f"{clip.name}_{image.stem}", bgr=np.asarray(bgr, dtype=np.uint8),
-                             class_id=ROOM_CLASS_OF_KIND[kind], box=None)
+                             class_id=ROOM_CLASS_OF_KIND[kind], box=None, one_person=True)
     return None
 
 
@@ -314,8 +316,8 @@ def main() -> None:
             box, person = None, None  # nobody there: a background picture, whatever the teacher thinks
         elif sample.box is not None:
             box, person = sample.box, match_teacher(box=sample.box, people=people)
-        elif len(people) == 1:
-            box, person = people[0].box, people[0]
+        elif len(people) == 1 or (sample.one_person and people):
+            box, person = people[0].box, people[0]  # the teacher lists people best score first
         else:
             skipped += 1  # no box in the dataset and not exactly one person found
             continue

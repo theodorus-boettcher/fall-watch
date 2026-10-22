@@ -74,9 +74,9 @@ def test_room_posture_comes_from_the_clip_name(tmp_path: Path) -> None:
     for clip in ("room-up-1", "room-lying-2", "room-empty-1", "test-fall-1"):
         (tmp_path / clip).mkdir()
         cv2.imwrite(str(tmp_path / clip / "1_00000001.jpg"), np.zeros((24, 32, 3), dtype=np.uint8))
-    found = {s.stem: (s.split, s.class_id, s.box) for s in room_samples(root=tmp_path)}
-    assert found == {"room-empty-1_1_00000001": ("train", None, None), "room-lying-2_1_00000001": ("train", 1, None),
-                     "room-up-1_1_00000001": ("train", 0, None)}
+    found = {s.stem: (s.split, s.class_id, s.box, s.one_person) for s in room_samples(root=tmp_path)}
+    assert found == {"room-empty-1_1_00000001": ("train", None, None, True),
+                     "room-lying-2_1_00000001": ("train", 1, None, True), "room-up-1_1_00000001": ("train", 0, None, True)}
     (tmp_path / "room-sitting-1").mkdir()
     with pytest.raises(ValueError, match="room-sitting-1"):
         list(room_samples(root=tmp_path))
