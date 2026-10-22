@@ -35,6 +35,7 @@ from ultralytics.models import YOLO
 from door_counter.fall_data import activity_ranges
 from door_counter.gateway.fall_watch import FallWatch
 from door_counter.gateway.messages import Frame, Item
+from door_counter.gateway.server import parse_bed
 from door_counter.yolo_pose import Keypoint, Rect
 
 PHONE_INPUT_SIZE_PX = 320
@@ -197,18 +198,19 @@ def people_of(*, result: object) -> tuple[Item, ...]:
     )
 
 
-def run_clip(*, model: YOLO, name: str, clip: Clip) -> ClipResult:
+def run_clip(*, model: YOLO, name: str, clip: Clip, beds: Sequence[Rect] = ()) -> ClipResult:
     """Play one clip through the model and the fall watch.
 
     Args:
         model: the phone model (ncnn folder).
         name: the model's name in the report.
         clip: the clip.
+        beds: bed zones in 0..1 of the picture, where lying raises no alert.
 
     Returns:
         Whether it alerted, and how long after the fall started.
     """
-    watch = FallWatch(alert_after_s=CLIP_ALERT_AFTER_S)
+    watch = FallWatch(beds=beds, alert_after_s=CLIP_ALERT_AFTER_S)
     class_names = [model.names[i] for i in sorted(model.names)]
     for k, (time_s, picture) in enumerate(sampled_frames(video=clip.path)):
         (result,) = list(model.predict(source=picture, imgsz=PHONE_INPUT_SIZE_PX, conf=PHONE_MIN_SCORE,
@@ -253,6 +255,8 @@ def main() -> None:
     parser.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the Subject.N folders")
     parser.add_argument("--caucafall-subjects", type=int, nargs="+", default=list(CAUCAFALL_TEST_SUBJECTS))
     parser.add_argument("--captures", type=Path, help="our capture folder with test-* clips")
+    parser.add_argument("--bed", type=lambda text: parse_bed(text=text), action="append", default=[],
+                        help="bed zone of the --captures room, x1,y1,x2,y2 in 0..1 (repeat for more beds)")
     parser.add_argument("--out", type=Path, help="write the results here as JSON")
     args = parser.parse_args()
     clip_sets = {}
@@ -269,7 +273,8 @@ def main() -> None:
         name, _, folder = spec.partition("=")
         model = YOLO(model=folder, task="pose")
         for set_name, clips in clip_sets.items():
-            mine = [run_clip(model=model, name=name, clip=clip) for clip in clips]
+            beds = args.bed if set_name == "ours" else []
+            mine = [run_clip(model=model, name=name, clip=clip, beds=beds) for clip in clips]
             results += mine
             summaries.append(summarise(model=name, clip_set=set_name, results=mine))
     print(f"{'model':10} {'clips':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} {'s to alert':>11}")

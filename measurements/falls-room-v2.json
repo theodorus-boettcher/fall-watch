@@ -1,0 +1,124 @@
+{
+  "summaries": [
+    {
+      "model": "before",
+      "clip_set": "ours",
+      "falls": 5,
+      "falls_caught": 0,
+      "normal_clips": 1,
+      "false_alarms": 0,
+      "sleeping_clips": 0,
+      "sleeping_alerts": 0,
+      "mean_seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip_set": "ours",
+      "falls": 5,
+      "falls_caught": 1,
+      "normal_clips": 1,
+      "false_alarms": 0,
+      "sleeping_clips": 0,
+      "sleeping_alerts": 0,
+      "mean_seconds_to_alert": null
+    }
+  ],
+  "clips": [
+    {
+      "model": "before",
+      "clip": "test-fall-1",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "test-fall-2",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "test-fall-3",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "test-fall-4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "test-fall-5",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "before",
+      "clip": "test-normal-bedfall-1",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-fall-1",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-fall-2",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-fall-3",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": true,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-fall-4",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-fall-5",
+      "is_fall": true,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    },
+    {
+      "model": "fall-v2",
+      "clip": "test-normal-bedfall-1",
+      "is_fall": false,
+      "has_sleeping": false,
+      "alerted": false,
+      "seconds_to_alert": null
+    }
+  ]
+}
