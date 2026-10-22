@@ -25,6 +25,7 @@ LEARNING_RATE = 0.001667
 MOMENTUM = 0.9
 SPLIT_KEYS = {"val": "val", "test": "test"}  # our split name -> data.yaml key
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
+ROOM_PREFIX = "room-"  # our room's pictures, named after their capture clip by door_counter.fall_data
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,31 @@ def train(*, config: TrainConfig) -> Path:
     if not best.is_file():
         raise FileNotFoundError(best)
     return best
+
+
+def repeat_room(*, data_yaml: Path, times: int) -> Path:
+    """Make the room's training pictures count ``times`` more, next to the many public ones.
+
+    Writes ``room-extra.txt`` (the room pictures listed ``times`` over; Ultralytics reads a .txt entry as a list
+    of pictures and keeps repeats) and ``data-room.yaml``, which trains on the folder plus that list.
+
+    Args:
+        data_yaml: an exported version's data.yaml.
+        times: extra copies of each room picture.
+
+    Returns:
+        The new data.yaml.
+    """
+    folder = data_yaml.parent
+    room = sorted(p.name for p in (folder / "train" / "images").glob(f"{ROOM_PREFIX}*"))
+    (folder / "room-extra.txt").write_text("".join(f"./train/images/{n}\n" for _ in range(times) for n in room),
+                                           encoding="utf-8")
+    spec = yaml.safe_load(data_yaml.read_text(encoding="utf-8"))
+    spec.pop("path", None)  # no path: the yaml's own folder, so the dataset can move to another machine
+    spec["train"] = ["train/images", "room-extra.txt"]
+    out = folder / "data-room.yaml"
+    out.write_text(yaml.safe_dump(spec, sort_keys=False), encoding="utf-8")
+    return out
 
 
 def count_images(*, data_yaml: Path, split: str) -> int:
@@ -163,8 +189,11 @@ def main() -> None:
     parser.add_argument("--imgsz", type=int, default=DEFAULT_IMAGE_SIZE_PX)
     parser.add_argument("--base", default=DEFAULT_BASE_MODEL, help="starting weights")
     parser.add_argument("--weights", type=Path, help="skip training: score and export these weights")
+    parser.add_argument("--repeat-room", type=int, default=0,
+                        help="extra copies of each room picture (fall-v3: 2, so 3x in all)")
     args = parser.parse_args()
-    config = TrainConfig(data_yaml=args.data, name=args.name, base_model=args.base, image_size_px=args.imgsz,
+    data_yaml = repeat_room(data_yaml=args.data, times=args.repeat_room) if args.repeat_room > 0 else args.data
+    config = TrainConfig(data_yaml=data_yaml, name=args.name, base_model=args.base, image_size_px=args.imgsz,
                          epochs=args.epochs, batch=args.batch)
     best = args.weights if args.weights is not None else train(config=config)
     scores = [score(weights=best, data_yaml=config.data_yaml, split=s, image_size_px=config.image_size_px)

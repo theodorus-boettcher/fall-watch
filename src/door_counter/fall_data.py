@@ -18,6 +18,11 @@ pictures with no label). The posture comes from the clip name, the box and keypo
 the user is ever in these clips, so when the teacher finds several people (it often adds partial boxes on a
 lying body) its top-scored one is taken. All of it goes to train; the room's ``test-*`` clips are the test.
 
+The room pictures where the teacher finds nobody (``missed_room_pictures``) get boxes from Roboflow's SAM 3
+Auto Label instead (see ``door_counter.roboflow_io``). ``--sam3`` reads that project's COCO export: all of a
+picture's outlines merge into one box (only the user is there), the posture comes from the clip name, and the
+keypoints come from the teacher only if it matches the box, so mostly "not labelled".
+
 The split goes by person (``SPLIT_OF_SUBJECT``, ``GMDCSA_SPLIT_OF_SUBJECT``), so the same person is never
 in two splits; GMDCSA-24's room 3 (person 4) is the test. Pictures are scaled to ``SIDE_PX``.
 
@@ -61,6 +66,7 @@ FALL_SETTLE_S = 1.0  # the first second of "Falling" is the way down: neither po
 LYING_ACTIVITIES = ("Sleeping",)
 UNCLEAR_ACTIVITIES = ("Exercising",)  # push-ups and yoga: left out
 ROOM_CLASS_OF_KIND = {"room-up": 0, "room-lying": 1, "room-empty": None}  # clip name without its number
+ROBOFLOW_RENAME = "_jpg.rf."  # Roboflow exports <stem>.jpg as <stem>_jpg.rf.<hash>.jpg
 
 
 @dataclass(frozen=True)
@@ -235,6 +241,55 @@ def room_samples(*, root: Path) -> Iterator[Sample]:
     return None
 
 
+def missed_room_pictures(*, root: Path, converted: Path) -> list[Path]:
+    """Room pictures with someone in them that the converter left out (the teacher found nobody).
+
+    Args:
+        root: our capture folder with the ``room-*`` clips.
+        converted: the ``--room`` output; a picture is missed when ``train/labels`` has no file for it.
+
+    Returns:
+        The missed pictures, clip by clip.
+    """
+    labels = converted / "train" / "labels"
+    clips = sorted(d for d in root.iterdir() if d.is_dir() and d.name.startswith("room-"))
+    return [image for clip in clips if ROOM_CLASS_OF_KIND.get(clip.name.rsplit("-", maxsplit=1)[0]) is not None
+            for image in sorted(clip.glob("*.jpg")) if not (labels / f"{clip.name}_{image.stem}.txt").is_file()]
+
+
+def sam3_samples(*, root: Path) -> Iterator[Sample]:
+    """Room pictures boxed by SAM 3 Auto Label, from a Roboflow COCO export; pictures with no outline are left out."""
+    for coco_file in sorted(root.glob("*/_annotations.coco.json")):
+        coco = json.loads(coco_file.read_text(encoding="utf-8"))
+        outlines: dict[int, list[list[float]]] = {}
+        for annotation in coco["annotations"]:
+            outlines.setdefault(annotation["image_id"], []).append(annotation["bbox"])
+        for image in coco["images"]:
+            found = outlines.get(image["id"], [])
+            stem = image["file_name"].split(ROBOFLOW_RENAME)[0]
+            class_id = ROOM_CLASS_OF_KIND.get(stem.split("_")[0].rsplit("-", maxsplit=1)[0])
+            if not found or class_id is None:
+                continue
+            bgr = cv2.imread(str(coco_file.parent / image["file_name"]))
+            if bgr is None:
+                continue
+            width, height = image["width"], image["height"]
+            box = Rect(x1=max(0.0, min(x for x, _, _, _ in found) / width),
+                       y1=max(0.0, min(y for _, y, _, _ in found) / height),
+                       x2=min(1.0, max(x + w for x, _, w, _ in found) / width),
+                       y2=min(1.0, max(y + h for _, y, _, h in found) / height))
+            yield Sample(split="train", stem=stem, bgr=np.asarray(bgr, dtype=np.uint8), class_id=class_id, box=box,
+                         one_person=True)
+    return None
+
+
+def scale_to_side(*, bgr: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    """The picture scaled so its longer side is ``SIDE_PX``."""
+    scale = SIDE_PX / max(bgr.shape[:2])
+    small = cv2.resize(bgr, (round(bgr.shape[1] * scale), round(bgr.shape[0] * scale)), interpolation=cv2.INTER_AREA)
+    return np.asarray(small, dtype=np.uint8)
+
+
 def match_teacher(*, box: Rect, people: Sequence[TeacherPerson]) -> TeacherPerson | None:
     """The teacher's person that overlaps the labelled box most, if by ``MATCH_IOU`` or more."""
     best, best_iou = None, MATCH_IOU
@@ -296,13 +351,15 @@ def main() -> None:
     source.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the 10 subject folders")
     source.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the 4 subject folders")
     source.add_argument("--room", type=Path, help="our capture folder with the room-* clips")
+    source.add_argument("--sam3", type=Path, help="COCO export of the SAM 3 box project (room pictures)")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     from rfdetr import RFDETRKeypointPreview  # heavy; only the converter needs it
 
     teacher = RFDETRKeypointPreview()
     samples = (caucafall_samples(root=args.caucafall) if args.caucafall
-               else gmdcsa_samples(root=args.gmdcsa) if args.gmdcsa else room_samples(root=args.room))
+               else gmdcsa_samples(root=args.gmdcsa) if args.gmdcsa
+               else room_samples(root=args.room) if args.room else sam3_samples(root=args.sam3))
     categories = [{"id": i + 1, "name": n, "supercategory": "person", "keypoints": list(KEYPOINT_NAMES),
                    "skeleton": [list(e) for e in SKELETON]} for i, n in enumerate(CLASS_NAMES)]
     cocos: dict[str, dict[str, list[object]]] = {
@@ -321,9 +378,7 @@ def main() -> None:
         else:
             skipped += 1  # no box in the dataset and not exactly one person found
             continue
-        scale = SIDE_PX / max(sample.bgr.shape[:2])
-        small = cv2.resize(sample.bgr, (round(sample.bgr.shape[1] * scale), round(sample.bgr.shape[0] * scale)),
-                           interpolation=cv2.INTER_AREA)
+        small = scale_to_side(bgr=sample.bgr)
         height, width = small.shape[:2]
         split_dir = args.out / sample.split
         (split_dir / "images").mkdir(parents=True, exist_ok=True)

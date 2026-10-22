@@ -1,13 +1,15 @@
 """Tests for the CAUCAFall converter's matching and label lines."""
 
+import json
 from pathlib import Path
 
 import cv2
 import numpy as np
 import pytest
 
-from door_counter.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher, posture_at,
-                                     read_yolo_box, room_samples, yolo_line)
+from door_counter.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher,
+                                     missed_room_pictures, posture_at, read_yolo_box, room_samples, sam3_samples,
+                                     yolo_line)
 from door_counter.yolo_pose import Rect
 
 
@@ -80,3 +82,30 @@ def test_room_posture_comes_from_the_clip_name(tmp_path: Path) -> None:
     (tmp_path / "room-sitting-1").mkdir()
     with pytest.raises(ValueError, match="room-sitting-1"):
         list(room_samples(root=tmp_path))
+
+
+def test_missed_room_pictures_are_the_ones_without_a_label(tmp_path: Path) -> None:
+    for clip in ("room-up-1", "room-empty-1", "test-fall-1"):
+        (tmp_path / "captures" / clip).mkdir(parents=True)
+        for frame in ("a", "b"):
+            (tmp_path / "captures" / clip / f"{frame}.jpg").write_bytes(b"jpg")
+    (tmp_path / "converted" / "train" / "labels").mkdir(parents=True)
+    (tmp_path / "converted" / "train" / "labels" / "room-up-1_a.txt").write_text("", encoding="utf-8")
+    assert missed_room_pictures(root=tmp_path / "captures", converted=tmp_path / "converted") == [
+        tmp_path / "captures" / "room-up-1" / "b.jpg"]
+
+
+def test_sam3_outlines_merge_into_one_box_per_picture(tmp_path: Path) -> None:
+    (tmp_path / "train").mkdir()
+    names = ("room-lying-2_1_00000007_jpg.rf.abc.jpg", "room-up-1_1_00000008_jpg.rf.def.jpg")
+    for name in names:
+        cv2.imwrite(str(tmp_path / "train" / name), np.zeros((50, 100, 3), dtype=np.uint8))
+    coco = {"images": [{"id": i + 1, "file_name": n, "width": 100, "height": 50} for i, n in enumerate(names)],
+            "annotations": [{"id": 1, "image_id": 1, "bbox": [10, 5, 20, 10]},  # a lying body in two parts
+                            {"id": 2, "image_id": 1, "bbox": [40, 20, 30, 20]}]}  # picture 2: no outline
+    (tmp_path / "train" / "_annotations.coco.json").write_text(json.dumps(coco), encoding="utf-8")
+    found = list(sam3_samples(root=tmp_path))
+    assert [(s.stem, s.split, s.class_id, s.one_person) for s in found] == [
+        ("room-lying-2_1_00000007", "train", 1, True)]
+    box = found[0].box
+    assert box is not None and (box.x1, box.y1, box.x2, box.y2) == pytest.approx((0.1, 0.1, 0.7, 0.8))
