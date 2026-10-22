@@ -17,8 +17,8 @@ android {
         // Galaxy S5 on stock Android 6.0.1
         minSdk 23
         targetSdk 23
-        versionCode 1
-        versionName '0.1'
+        versionCode 2
+        versionName '1.0'
         ndk {
             abiFilters 'armeabi-v7a'
         }
@@ -34,6 +34,25 @@ android {
             path 'src/main/cpp/CMakeLists.txt'
             version '3.22.1'
         }
+    }
+
+    // Release signing: a key kept outside the repo, named in local.properties (release.store,
+    // release.store.password, release.key.alias). Without them the release app comes out unsigned.
+    if (localProps.getProperty('release.store')) {
+        signingConfigs {
+            release {
+                storeFile file(localProps.getProperty('release.store'))
+                storePassword localProps.getProperty('release.store.password')
+                keyAlias localProps.getProperty('release.key.alias')
+                keyPassword localProps.getProperty('release.store.password')  // PKCS12: one password for both
+            }
+        }
+        buildTypes.release.signingConfig signingConfigs.release
+    }
+
+    lint {
+        // Target 23 on purpose: old phones and old Android rules; the app is not for Google Play.
+        disable 'ExpiredTargetSdkVersion'
     }
 
     compileOptions {

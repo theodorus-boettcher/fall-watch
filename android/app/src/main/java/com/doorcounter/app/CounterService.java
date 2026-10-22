@@ -144,8 +144,8 @@ public final class CounterService extends Service {
      */
     private Notification buildNotification() {
         return new Notification.Builder(this)
-                .setContentTitle("Door counter")
-                .setContentText("Counting people at the door")
+                .setContentTitle("Fall watch")
+                .setContentText("Watching for someone lying on the floor")
                 .setSmallIcon(android.R.drawable.ic_menu_camera)
                 .setOngoing(true)
                 .build();

@@ -12,7 +12,7 @@
 
     <application
         android:allowBackup="false"
-        android:label="Door counter">
+        android:label="Fall watch">
 
         <activity
             android:name=".MainActivity"
