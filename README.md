@@ -60,7 +60,8 @@ phone's own model files and the gateway's own alert code on video clips.
   recordings. They show the model works in this room. They don't show it works in any room.
 - On the phone: about 0.2 to 0.33 s per frame with 4 threads. After 3 h 15 min with the motion gate on, the
   processor was at 55 °C and the battery went from 25% to 23% while plugged into a laptop's USB.
-- The full numbers are in [`measurements/`](measurements/), and the limits are in [HANDOFF.md](HANDOFF.md).
+- The full numbers are in [`measurements/`](measurements/). What it can't do yet is under
+  [Limits and next steps](#limits-and-next-steps).
 
 ## Run it
 
@@ -165,14 +166,37 @@ Training needs a CUDA GPU and the `train` dependency group. Labelling needs the 
    ```bash
    uv run --group train python -m fall_watch.train --data data/rf-fall/data.yaml --name my-model
    ```
-5. **Score** the falls caught and the false alarms:
+   For a new room, start from fall-v3 instead: add `--base fall-v3.pt` (from the release) and
+   `--repeat-room 2`, which puts each room picture in 3 times, as fall-v3 was trained.
+5. **Score** the falls caught and the false alarms. `--captures data/captures --bed ...` scores your own
+   `test-*` room clips:
    ```bash
    uv run --group train python -m fall_watch.eval_falls --model mine=models/my-model \
      --caucafall "data/caucafall/raw/Dataset CAUCAFall/CAUCAFall" --out measurements/falls-mine.json
    ```
+   Put a new model on the phone only if it catches at least as many falls with no new false alarms.
 
 Each command's `--help` has the rest. Tests: `uv run pytest`. The two training tests are skipped unless you
 use `--group train`.
+
+## Limits and next steps
+
+- **Floor exercise looks like a fall.** Push-ups and sitting on the floor gave the 4 false alarms on
+  GMDCSA-24, scored there with a 1 s alert. A care home would use an alert time of about 30 s.
+- **One room, one person.** A new room or camera spot needs its own pictures and bed zone. Until then it
+  may do as badly as the public-data model did here: 0 of 8.
+- **No night test.** The S5's camera needs light, so a real room needs a night light or an infrared camera.
+- **The alert is only on the live page.** There's no sound and no message to a staff phone.
+- **No login.** Anyone on the home network can open the live page and clear alerts, and the phone sends
+  plain HTTP. Use it on a closed network only.
+- **Tracking.** A person who leaves and comes back gets a new number. Someone the model misses for more
+  than 3.5 s restarts their 5 s timer. When someone gets up, the tracker sometimes gives them a new
+  number, and the old alert stays until it's cleared.
+- **Heat.** With the preview on and someone moving, the phone reached 88 to 91 °C. Keep the preview off
+  except while setting up.
+
+Next: an alert time of about 30 s with a message to the staff phone, a login and one gateway for many
+rooms, and tests with more people, more rooms and at night.
 
 ## What's where
 
