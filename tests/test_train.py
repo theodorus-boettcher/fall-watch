@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+import pytest
 import yaml
 
-from door_counter.train import repeat_room
+pytest.importorskip("ultralytics", reason="needs the train group: uv run --group train pytest")
+from door_counter.train import repeat_room  # noqa: E402
 
 
 def test_room_pictures_are_listed_again(tmp_path: Path) -> None:

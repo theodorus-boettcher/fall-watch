@@ -8,17 +8,21 @@ data/
 *.pt
 *.ts
 
-# android build output
+# android build output, app files and signing keys (the release key lives outside the repo)
 android/.gradle/
 android/**/build/
 android/local.properties
 android/app/.cxx/
-
-# model weights bundled into the APK (AGPL-3.0 Ultralytics exports, rebuilt from the export step)
-android/app/src/main/assets/models/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+.idea/
+*.iml
 .env
 
-# training runs and exported phone models (rebuilt by door_counter.train)
+# training runs and exported phone models, also the copies bundled into the app's assets (rebuilt by train)
 runs/
 models/
 *.onnx

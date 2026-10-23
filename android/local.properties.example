@@ -1,0 +1,11 @@
+# Copy to local.properties (git-ignored) and put in this machine's paths.
+sdk.dir=/home/you/Android/sdk
+# NDK r27c (27.2.12479018), the one ncnn was built with
+ndk.path=/home/you/Android/ndk/android-ndk-r27c
+# ncnn built for armeabi-v7a: the folder that holds ncnnConfig.cmake
+ncnn.dir=/home/you/Android/build/ncnn-armv7/install/lib/cmake/ncnn
+# Optional, for a signed release app: a PKCS12 key store kept outside the repo (one password for store and key).
+# Without these the release app comes out unsigned; the debug app always works.
+#release.store=/home/you/.android/fall-watch-release.jks
+#release.store.password=
+#release.key.alias=fall-watch

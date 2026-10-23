@@ -1,3 +1,4 @@
+note: measured with the first app version (live person detection, 2026-10-16), not the fall watch
 label: debloated
 phone date: Fri Oct 16 02:53:52 CEST 2026
 enabled packages: 192

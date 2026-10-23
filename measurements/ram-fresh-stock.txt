@@ -1,18 +1,7 @@
 label: fresh-stock
 phone date: Fri Oct 16 02:33:13 CEST 2026
 enabled packages: 308
---- sample 1, uptime usage: cut OPTION... [FILE]...
-
-Print selected parts of lines from each FILE to standard output.
-
--b LIST	select only these bytes from LIST.
--c LIST	select only these characters from LIST.
--f LIST	select only these fields.
--d DELIM	use DELIM instead of TAB for field delimiter.
--s	do not print lines not containing delimiters.
--n	don't split multibyte characters (Ignored).
-
-cut: Needs -fcb s
+--- sample 1, uptime not recorded (an early measure_ram.sh printed an error here)
 MemTotal:        1746884 kB
 MemFree:           56020 kB
 Buffers:           14024 kB
@@ -23,18 +12,7 @@ Total RAM: 1746884 kB (status normal)
  Free RAM: 825299 kB (360503 cached pss + 408956 cached kernel + 55840 free)
  Used RAM: 761115 kB (635883 used pss + 125232 kernel)
  Lost RAM: 160470 kB
---- sample 2, uptime usage: cut OPTION... [FILE]...
-
-Print selected parts of lines from each FILE to standard output.
-
--b LIST	select only these bytes from LIST.
--c LIST	select only these characters from LIST.
--f LIST	select only these fields.
--d DELIM	use DELIM instead of TAB for field delimiter.
--s	do not print lines not containing delimiters.
--n	don't split multibyte characters (Ignored).
-
-cut: Needs -fcb s
+--- sample 2, uptime not recorded (an early measure_ram.sh printed an error here)
 MemTotal:        1746884 kB
 MemFree:           62028 kB
 Buffers:           12920 kB
@@ -45,18 +23,7 @@ Total RAM: 1746884 kB (status normal)
  Free RAM: 809276 kB (363764 cached pss + 383824 cached kernel + 61688 free)
  Used RAM: 769834 kB (644182 used pss + 125652 kernel)
  Lost RAM: 167774 kB
---- sample 3, uptime usage: cut OPTION... [FILE]...
-
-Print selected parts of lines from each FILE to standard output.
-
--b LIST	select only these bytes from LIST.
--c LIST	select only these characters from LIST.
--f LIST	select only these fields.
--d DELIM	use DELIM instead of TAB for field delimiter.
--s	do not print lines not containing delimiters.
--n	don't split multibyte characters (Ignored).
-
-cut: Needs -fcb s
+--- sample 3, uptime not recorded (an early measure_ram.sh printed an error here)
 MemTotal:        1746884 kB
 MemFree:           57824 kB
 Buffers:           13100 kB

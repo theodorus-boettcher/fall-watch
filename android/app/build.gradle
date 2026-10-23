@@ -4,7 +4,11 @@ plugins {
 
 // Machine-specific paths (NDK, ncnn build) live in the git-ignored local.properties.
 def localProps = new Properties()
-file('../local.properties').withInputStream { localProps.load(it) }
+def localPropsFile = file('../local.properties')
+if (!localPropsFile.isFile()) {
+    throw new GradleException('android/local.properties is missing: copy local.properties.example and fill it in')
+}
+localPropsFile.withInputStream { localProps.load(it) }
 
 android {
     namespace 'com.doorcounter.app'

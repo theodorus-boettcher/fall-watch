@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Fall watch: a tiny pose model on a 2014 Android phone, alerts on a laptop gateway."
 requires-python = ">=3.12"
 dependencies = [
-    "ncnn>=1.0.20260526",
     "numpy",
+    "opencv-python",
+    "pyyaml",
     "roboflow>=1.7.1",
     "supervision>=0.30.9",
     "trackers>=2.6.1",
@@ -21,6 +22,7 @@ dev = [
     "types-pyyaml>=6.0.12.20260906",
 ]
 train = [
+    "ncnn>=1.0.20260526",  # runs the phone's models on the laptop (eval_falls)
     "pnnx",  # ncnn export for the phone
     "ultralytics>=8.4.178",
 ]
@@ -40,5 +42,5 @@ testpaths = ["tests"]
 
 [[tool.mypy.overrides]]
 # These ship no type information.
-module = ["roboflow", "roboflow.*", "ncnn"]
+module = ["roboflow", "roboflow.*"]
 ignore_missing_imports = true

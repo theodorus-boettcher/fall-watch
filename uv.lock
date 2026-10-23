@@ -471,8 +471,9 @@ name = "door-counter"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "ncnn" },
     { name = "numpy" },
+    { name = "opencv-python" },
+    { name = "pyyaml" },
     { name = "roboflow" },
     { name = "supervision" },
     { name = "trackers" },
@@ -488,14 +489,16 @@ teacher = [
     { name = "rfdetr" },
 ]
 train = [
+    { name = "ncnn" },
     { name = "pnnx" },
     { name = "ultralytics" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "ncnn", specifier = ">=1.0.20260526" },
     { name = "numpy" },
+    { name = "opencv-python" },
+    { name = "pyyaml" },
     { name = "roboflow", specifier = ">=1.7.1" },
     { name = "supervision", specifier = ">=0.30.9" },
     { name = "trackers", specifier = ">=2.6.1" },
@@ -509,6 +512,7 @@ dev = [
 ]
 teacher = [{ name = "rfdetr", specifier = ">=1.11.2" }]
 train = [
+    { name = "ncnn", specifier = ">=1.0.20260526" },
     { name = "pnnx" },
     { name = "ultralytics", specifier = ">=8.4.178" },
 ]
