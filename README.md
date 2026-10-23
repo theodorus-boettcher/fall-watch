@@ -174,7 +174,6 @@ Training needs a CUDA GPU and the `train` dependency group. Labelling needs the 
    uv run --group train python -m fall_watch.eval_falls --model mine=models/my-model \
      --caucafall "data/caucafall/raw/Dataset CAUCAFall/CAUCAFall" --out measurements/falls-mine.json
    ```
-   Put a new model on the phone only if it catches at least as many falls with no new false alarms.
 
 Each command's `--help` has the rest. Tests: `uv run pytest`. The two training tests are skipped unless you
 use `--group train`.
