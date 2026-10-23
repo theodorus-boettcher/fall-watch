@@ -43,7 +43,7 @@
         "clip": "test-fall-5",
         "is_fall": true,
         "has_sleeping": false,
-        "alerted": false,
+        "alerted": true,
         "seconds_to_alert": null
       },
       {

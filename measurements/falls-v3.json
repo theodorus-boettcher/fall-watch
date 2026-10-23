@@ -4,12 +4,12 @@
       "model": "before",
       "clip_set": "gmdcsa24",
       "falls": 17,
-      "falls_caught": 10,
+      "falls_caught": 12,
       "normal_clips": 16,
       "false_alarms": 4,
       "sleeping_clips": 4,
       "sleeping_alerts": 1,
-      "mean_seconds_to_alert": 1.77
+      "mean_seconds_to_alert": 1.62
     },
     {
       "model": "before",
@@ -17,7 +17,7 @@
       "falls": 10,
       "falls_caught": 6,
       "normal_clips": 10,
-      "false_alarms": 0,
+      "false_alarms": 1,
       "sleeping_clips": 0,
       "sleeping_alerts": 0,
       "mean_seconds_to_alert": 4.03
@@ -97,8 +97,8 @@
       "clip": "Subject4/Fall/04.mp4",
       "is_fall": true,
       "has_sleeping": false,
-      "alerted": false,
-      "seconds_to_alert": null
+      "alerted": true,
+      "seconds_to_alert": 2.62
     },
     {
       "model": "before",
@@ -122,15 +122,15 @@
       "is_fall": true,
       "has_sleeping": false,
       "alerted": true,
-      "seconds_to_alert": 2.23
+      "seconds_to_alert": 1.02
     },
     {
       "model": "before",
       "clip": "Subject4/Fall/08.mp4",
       "is_fall": true,
       "has_sleeping": false,
-      "alerted": false,
-      "seconds_to_alert": null
+      "alerted": true,
+      "seconds_to_alert": 1.51
     },
     {
       "model": "before",
@@ -146,7 +146,7 @@
       "is_fall": true,
       "has_sleeping": false,
       "alerted": true,
-      "seconds_to_alert": 2.62
+      "seconds_to_alert": 1.42
     },
     {
       "model": "before",
@@ -505,7 +505,7 @@
       "clip": "Subject10/Pick up object",
       "is_fall": false,
       "has_sleeping": false,
-      "alerted": false,
+      "alerted": true,
       "seconds_to_alert": null
     },
     {

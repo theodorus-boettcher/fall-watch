@@ -24,7 +24,8 @@ TORSO_LYING_DEG = 60.0  # torso further than this from vertical counts as lying
 MIN_VISIBILITY = 0.5
 LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_HIP, RIGHT_HIP = 5, 6, 11, 12  # COCO keypoint order
 PHONE_FPS_HZ = 5.0
-LOST_AFTER_S = 2.0  # a track survives this long without being seen
+LOST_AFTER_S = 3.5  # a track survives this long unseen: 2 missed frames at the motion gate's 1 a second
+TRACKER_REFERENCE_FPS = 30  # trackers counts lost_track_buffer in frames at this rate, whatever frame_rate is
 MIN_TRACK_SCORE = 0.3
 FORGET_AFTER_S = 30.0  # drop a person's timer when they have not been seen for this long
 
@@ -109,7 +110,7 @@ class FallWatch:
         self._alert_after_s = alert_after_s
         self._tracker = ByteTrackTracker(
             frame_rate=PHONE_FPS_HZ,
-            lost_track_buffer=round(PHONE_FPS_HZ * LOST_AFTER_S),
+            lost_track_buffer=round(TRACKER_REFERENCE_FPS * LOST_AFTER_S),
             track_activation_threshold=MIN_TRACK_SCORE,
             high_conf_det_threshold=MIN_TRACK_SCORE,
         )
@@ -119,6 +120,7 @@ class FallWatch:
         self._alerts: list[Alert] = []
         self._people: tuple[PersonState, ...] = ()
         self._last_time_s: float | None = None
+        self._tracker_offset_s = 0.0  # added to the phone's clock so the tracker's time never goes back
 
     def update(self, *, frame: Frame, class_names: Sequence[str]) -> None:
         """Feed the next frame, in order.
@@ -129,7 +131,11 @@ class FallWatch:
         """
         now = frame.wall_time_s
         if self._last_time_s is not None and now < self._last_time_s:
-            self._lying_since_s.clear()  # the phone's clock jumped back (no internet time): restart the timers
+            # The phone's clock jumped back (no internet time): restart the timers, and keep the tracker (and its
+            # ids, which open alerts use) going forward, since it skips frames whose time goes back.
+            self._lying_since_s.clear()
+            self._last_seen_s = dict.fromkeys(self._last_seen_s, now)
+            self._tracker_offset_s += self._last_time_s - now + 1 / PHONE_FPS_HZ
         self._last_time_s = now
         items = frame.items
         if items:
@@ -140,8 +146,8 @@ class FallWatch:
             )
         else:
             detections = sv.Detections.empty()
-        # No timestamps for the tracker either: it would stall after a clock jump.
-        tracked = self._tracker.update(detections)
+        # Real times, so "lost after 2 s" holds at any rate (the motion gate drops to 1 frame a second).
+        tracked = self._tracker.update(detections, timestamp=now + self._tracker_offset_s)
         track_ids = [] if tracked.tracker_id is None else tracked.tracker_id.tolist()
         people = []
         for track_id, index in zip(track_ids, tracked.data.get("index", []), strict=True):

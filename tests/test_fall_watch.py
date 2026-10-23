@@ -32,9 +32,9 @@ def make_person(*, cx: float, cy: float, class_id: int = 0, torso: tuple[float, 
                 keypoints=tuple(points))
 
 
-def frame_at(*, k: int, people: list[Item], start_s: float = 1000.0) -> Frame:
-    """Frame number k at 5 FPS (640 x 480)."""
-    return Frame(frame_id=k, wall_time_s=start_s + 0.2 * k, width_px=640, height_px=480, inference_s=0.15,
+def frame_at(*, k: int, people: list[Item], start_s: float = 1000.0, step_s: float = 0.2) -> Frame:
+    """Frame number k, step_s apart (5 FPS by default), 640 x 480."""
+    return Frame(frame_id=k, wall_time_s=start_s + step_s * k, width_px=640, height_px=480, inference_s=0.15,
                  items=tuple(people))
 
 
@@ -84,6 +84,18 @@ def test_missed_frames_do_not_restart_the_timer_but_a_clock_jump_does() -> None:
     assert watch.people()[0].lying_for_s == pytest.approx(0.2 * (14 - 2))  # tracked from frame 2 (1 only spawns it)
     watch.update(frame=frame_at(k=15, people=lying, start_s=500.0), class_names=POSTURES)  # clock went back
     assert watch.people()[0].lying_for_s == 0.0
+
+
+@pytest.mark.parametrize(("step_s", "missed"), [(0.2, 3), (1.05, 2)])  # full rate; motion gate's idle rate
+def test_a_few_missed_frames_keep_the_person_and_their_timer(step_s: float, missed: int) -> None:
+    watch = FallWatch()
+    lying = [make_person(cx=0.3, cy=0.5, class_id=1)]
+    frames = [lying] * 3 + [[]] * missed + [lying] * round(8 / step_s)
+    for k, people in enumerate(frames):
+        watch.update(frame=frame_at(k=k, people=people, step_s=step_s), class_names=POSTURES)
+    (alert,) = watch.alerts()
+    assert alert.lying_since_s < 1000.0 + 3 * step_s  # the timer started before the gap
+    assert alert.raised_s - alert.lying_since_s == pytest.approx(5.0, abs=step_s)
 
 
 def test_clear_ends_open_alerts() -> None:
