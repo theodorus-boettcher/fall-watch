@@ -58,11 +58,6 @@ final class MotionGate {
         return false;
     }
 
-    /** @return true if motion was seen within the hold time of the last call */
-    boolean isActive(long nowMs) {
-        return nowMs - lastMotionMs <= holdMs;
-    }
-
     /**
      * Brightness samples on an even grid.
      *

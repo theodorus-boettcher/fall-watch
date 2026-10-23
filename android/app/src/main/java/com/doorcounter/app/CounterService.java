@@ -39,6 +39,8 @@ public final class CounterService extends Service {
     // The model sees 320 px anyway; smaller preview pictures also get through the S5's lossy Wi-Fi faster.
     private static final int TARGET_PREVIEW_WIDTH_PX = 320;
     private static final int CAMERA_BUFFER_COUNT = 3;
+    // Another app (e.g. the camera app, to aim the phone) can take the camera; keep trying to get it back.
+    private static final long CAMERA_RETRY_DELAY_MS = 5000;
     private static final double STATS_WINDOW_S = 5.0;
     private static final double MOTION_HOLD_S = 2.0;
     private static final double IDLE_INTERVAL_S = 1.0;
@@ -197,10 +199,11 @@ public final class CounterService extends Service {
         try {
             camera = Camera.open(0);
         } catch (RuntimeException e) {
-            Log.e(TAG, "camera open failed", e);
-            stopSelf();
+            Log.e(TAG, "camera open failed, trying again", e);
+            cameraHandler.postDelayed(this::openCamera, CAMERA_RETRY_DELAY_MS);
             return;
         }
+        camera.setErrorCallback(this::onCameraError);
         Camera.Parameters params = camera.getParameters();
         Camera.Size size = pickPreviewSize(params.getSupportedPreviewSizes());
         frameWidthPx = size.width;
@@ -217,8 +220,9 @@ public final class CounterService extends Service {
         try {
             camera.setPreviewTexture(previewTexture);
         } catch (IOException e) {
-            Log.e(TAG, "preview texture failed", e);
-            stopSelf();
+            Log.e(TAG, "preview texture failed, trying again", e);
+            releaseCamera();
+            cameraHandler.postDelayed(this::openCamera, CAMERA_RETRY_DELAY_MS);
             return;
         }
         int bufferBytes = frameWidthPx * frameHeightPx * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8;
@@ -228,6 +232,18 @@ public final class CounterService extends Service {
         camera.setPreviewCallbackWithBuffer(this::onPreviewFrame);
         camera.startPreview();
         Log.i(TAG, String.format(Locale.ROOT, "camera open, preview %dx%d", frameWidthPx, frameHeightPx));
+    }
+
+    /**
+     * The camera was taken away or its server died (camera thread). Free it and open it again later.
+     *
+     * @param error the camera's error code
+     * @param source the camera that failed
+     */
+    private void onCameraError(int error, Camera source) {
+        Log.w(TAG, "camera error " + error + ", opening it again");
+        releaseCamera();
+        cameraHandler.postDelayed(this::openCamera, CAMERA_RETRY_DELAY_MS);
     }
 
     /** Stop the preview and free the camera (camera thread). */
@@ -281,11 +297,12 @@ public final class CounterService extends Service {
             int width = frameWidthPx;
             int height = frameHeightPx;
             int rotation = settings.rotationDeg;
+            long frameTimeMs = System.currentTimeMillis();
             long startNs = SystemClock.elapsedRealtimeNanos();
             float[] items = detector.detect(nv21, width, height, rotation, MIN_SCORE);
             double inferenceS = (SystemClock.elapsedRealtimeNanos() - startNs) / NANOS_PER_S;
             boolean isSwapped = rotation == 90 || rotation == 270;
-            FrameResult result = new FrameResult(frameCount, System.currentTimeMillis(),
+            FrameResult result = new FrameResult(frameCount, frameTimeMs,
                     isSwapped ? height : width, isSwapped ? width : height, inferenceS, items);
             gateway.enqueue(result);
             if (settings.isPreviewEnabled && gateway.isPreviewSlotFree()) {

@@ -3,6 +3,9 @@ package com.doorcounter.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 /** Phone-side settings. Stored in SharedPreferences and changed from the laptop through {@link ConfigReceiver}. */
 final class Settings {
     /** Reaches the laptop over USB after {@code adb reverse tcp:8000 tcp:8000}. */
@@ -78,6 +81,9 @@ final class Settings {
         if (rotationDeg % 90 != 0 || rotationDeg < 0 || rotationDeg > 270) {
             throw new IllegalArgumentException("rotation must be 0, 90, 180 or 270, got " + rotationDeg);
         }
+        if (!isGatewayUrl(gatewayUrl)) {
+            throw new IllegalArgumentException("gateway must look like http://<laptop-ip>:8000, got " + gatewayUrl);
+        }
         if (threadCount < 1 || threadCount > 4) {
             throw new IllegalArgumentException("threads must be 1 to 4, got " + threadCount);
         }
@@ -92,6 +98,24 @@ final class Settings {
                 .putBoolean(KEY_MOTION_GATE, isMotionGateEnabled)
                 .putString(KEY_MODEL_NAME, modelName)
                 .apply();
+    }
+
+    /**
+     * Check a gateway address before it is saved: a bad one would stop the service on every start.
+     *
+     * @param gatewayUrl the address to check
+     * @return true for http://host or http://host:port
+     */
+    private static boolean isGatewayUrl(String gatewayUrl) {
+        if (gatewayUrl == null) {
+            return false;
+        }
+        try {
+            URL url = new URL(gatewayUrl);
+            return "http".equals(url.getProtocol()) && !url.getHost().isEmpty();
+        } catch (MalformedURLException e) {
+            return false;
+        }
     }
 
     @Override

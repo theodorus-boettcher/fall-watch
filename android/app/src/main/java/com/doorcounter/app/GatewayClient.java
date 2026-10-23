@@ -176,9 +176,12 @@ final class GatewayClient {
                 dropped = droppedFrames;
                 queued = queue.size();
             }
+            boolean isTaken;
             try {
-                post(buildJson(batch, preview, health, dropped, queued));
-            } catch (IOException | JSONException e) {
+                isTaken = post(buildJson(batch, preview, health, dropped, queued));
+            } catch (JSONException e) {
+                isTaken = false;  // a value org.json cannot write, such as NaN: sending it again won't help
+            } catch (IOException e) {
                 if (isReachable) {
                     Log.w(TAG, "gateway unreachable, queueing: " + e);
                     isReachable = false;
@@ -193,6 +196,10 @@ final class GatewayClient {
             if (!isReachable) {
                 Log.i(TAG, "gateway reachable again, " + queued + " frames queued");
                 isReachable = true;
+            }
+            if (!isTaken) {
+                // Dropped like a sent batch, or the queue would stay stuck on it.
+                Log.w(TAG, "gateway refused a batch, dropping " + batch.size() + " frames");
             }
             if (!batch.isEmpty()) {
                 long lastSentId = batch.get(batch.size() - 1).frameId;
@@ -305,9 +312,10 @@ final class GatewayClient {
      * POST a JSON body to the gateway.
      *
      * @param body the request body
-     * @throws IOException if the gateway cannot be reached or does not answer 2xx
+     * @return true if the gateway took it, false if it refused it (4xx: sending it again won't help)
+     * @throws IOException if the gateway cannot be reached or answers anything else
      */
-    private void post(JSONObject body) throws IOException {
+    private boolean post(JSONObject body) throws IOException {
         byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
         HttpURLConnection connection = (HttpURLConnection) framesUrl.openConnection();
         try {
@@ -320,9 +328,13 @@ final class GatewayClient {
                 out.write(bytes);
             }
             int status = connection.getResponseCode();
+            if (status / 100 == 4) {
+                return false;
+            }
             if (status / 100 != 2) {
                 throw new IOException("gateway answered HTTP " + status);
             }
+            return true;
         } finally {
             connection.disconnect();
         }

@@ -10,6 +10,8 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
+import java.util.List;
+
 /**
  * Takes provisioning commands from the laptop while this app is the device owner.
  *
@@ -87,7 +89,11 @@ public final class ProvisionReceiver extends BroadcastReceiver {
             return "error: pin-wifi needs ssid and bssid";
         }
         WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        for (WifiConfiguration config : wifi.getConfiguredNetworks()) {
+        List<WifiConfiguration> configs = wifi.getConfiguredNetworks();
+        if (configs == null) {
+            return "error: Wi-Fi is off";
+        }
+        for (WifiConfiguration config : configs) {
             if (!("\"" + ssid + "\"").equals(config.SSID)) {
                 continue;
             }
