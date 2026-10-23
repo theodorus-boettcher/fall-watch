@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.content.res.AssetManager;
 
@@ -31,7 +31,7 @@ final class Detector implements AutoCloseable {
      * Load a model from the APK assets.
      *
      * @param assets the app's asset manager
-     * @param modelName asset path without extension, e.g. {@code models/yolo26n-det-320}
+     * @param modelName asset path without extension, e.g. {@code models/fall-v3}
      * @param threadCount CPU threads for inference
      * @throws IllegalStateException if the model files are missing or broken
      */

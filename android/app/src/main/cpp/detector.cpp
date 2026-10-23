@@ -2,7 +2,7 @@
 //
 // One camera frame goes through: NV21 -> RGB -> resize -> rotate upright -> letterbox to the model
 // size -> model -> people with keypoints -> overlap removal. This is the same math as
-// src/door_counter/yolo_pose.py on the laptop; keep the two in step.
+// src/fall_watch/yolo_pose.py on the laptop; keep the two in step.
 //
 // Results go back to Java as one float record per person (see kValuesPerPerson).
 
@@ -21,7 +21,7 @@
 
 namespace {
 
-constexpr const char* kTag = "DoorDetector";
+constexpr const char* kTag = "FallWatchDetector";
 constexpr int kInputSizePx = 320;
 constexpr float kPadValue = 114.f;  // grey letterbox border, same as Ultralytics
 constexpr float kPixelScale = 1.f / 255.f;
@@ -215,7 +215,7 @@ std::string to_string(JNIEnv* env, jstring s) {
 
 extern "C" {
 
-JNIEXPORT jlong JNICALL Java_com_doorcounter_app_Detector_nativeCreate(JNIEnv* env, jclass, jobject asset_manager,
+JNIEXPORT jlong JNICALL Java_com_fallwatch_app_Detector_nativeCreate(JNIEnv* env, jclass, jobject asset_manager,
                                                                        jstring param_name, jstring bin_name,
                                                                        jint threads) {
     auto detector = std::make_unique<PoseDetector>();
@@ -228,7 +228,7 @@ JNIEXPORT jlong JNICALL Java_com_doorcounter_app_Detector_nativeCreate(JNIEnv* e
     return reinterpret_cast<jlong>(detector.release());
 }
 
-JNIEXPORT jfloatArray JNICALL Java_com_doorcounter_app_Detector_nativeDetect(JNIEnv* env, jclass, jlong handle,
+JNIEXPORT jfloatArray JNICALL Java_com_fallwatch_app_Detector_nativeDetect(JNIEnv* env, jclass, jlong handle,
                                                                              jbyteArray nv21, jint width,
                                                                              jint height, jint rotation_deg,
                                                                              jfloat min_score) {
@@ -242,7 +242,7 @@ JNIEXPORT jfloatArray JNICALL Java_com_doorcounter_app_Detector_nativeDetect(JNI
     return result;
 }
 
-JNIEXPORT void JNICALL Java_com_doorcounter_app_Detector_nativeDestroy(JNIEnv*, jclass, jlong handle) {
+JNIEXPORT void JNICALL Java_com_fallwatch_app_Detector_nativeDestroy(JNIEnv*, jclass, jlong handle) {
     delete from_handle(handle);
 }
 

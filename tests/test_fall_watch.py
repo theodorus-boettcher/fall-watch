@@ -2,9 +2,9 @@
 
 import pytest
 
-from door_counter.gateway.fall_watch import FallWatch, is_lying
-from door_counter.gateway.messages import Frame, Item
-from door_counter.yolo_pose import Keypoint, Rect
+from fall_watch.gateway.fall_watch import FallWatch, is_lying
+from fall_watch.gateway.messages import Frame, Item
+from fall_watch.yolo_pose import Keypoint, Rect
 
 POSTURES = ("not lying", "lying")
 BED = Rect(x1=0.6, y1=0.5, x2=1.0, y2=1.0)

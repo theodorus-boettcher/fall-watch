@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.Manifest;
 import android.app.admin.DevicePolicyManager;
@@ -17,7 +17,7 @@ import java.util.List;
  *
  * <p>The manifest only lets callers holding {@code android.permission.DUMP} reach it: the adb
  * shell has that permission, normal apps do not. Send a command with
- * {@code adb shell am broadcast -n com.doorcounter.app/.ProvisionReceiver --es op <op>
+ * {@code adb shell am broadcast -n com.fallwatch.app/.ProvisionReceiver --es op <op>
  * [--esa packages a,b,c]}. Ops: {@code grant-camera}, {@code hide}, {@code unhide},
  * {@code pin-wifi} ({@code --es ssid <name> --es bssid <access point, or any to undo>}),
  * {@code release} (give up the device-owner and admin roles, so the app can be uninstalled; works
@@ -25,7 +25,7 @@ import java.util.List;
  * {@code am broadcast} prints.
  */
 public final class ProvisionReceiver extends BroadcastReceiver {
-    private static final String TAG = "DoorProvision";
+    private static final String TAG = "FallWatchProvision";
 
     @Override
     public void onReceive(Context context, Intent intent) {

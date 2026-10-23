@@ -3,7 +3,7 @@
 import pytest
 
 pytest.importorskip("ultralytics", reason="needs the train group: uv run --group train pytest")
-from door_counter.eval_falls import ClipResult, summarise  # noqa: E402
+from fall_watch.eval_falls import ClipResult, summarise  # noqa: E402
 
 
 def test_summary_keeps_sleeping_out_of_false_alarms() -> None:

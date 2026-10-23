@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.app.Notification;
 import android.app.Service;
@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * detector is free it takes the newest frame; frames that arrive while it is busy go straight
  * back to the camera, so the detector always works on a fresh picture and never builds a backlog.
  */
-public final class CounterService extends Service {
-    private static final String TAG = "DoorCounter";
+public final class WatchService extends Service {
+    private static final String TAG = "FallWatch";
     private static final int NOTIFICATION_ID = 1;
     private static final float MIN_SCORE = 0.25f;
     // The model sees 320 px anyway; smaller preview pictures also get through the S5's lossy Wi-Fi faster.

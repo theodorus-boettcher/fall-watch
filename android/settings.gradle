@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = 'door-counter'
+rootProject.name = 'fall-watch'
 include ':app'

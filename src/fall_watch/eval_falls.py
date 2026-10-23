@@ -19,7 +19,7 @@ Clip sets:
     on, a still room runs about 1 frame a second.
 
 Needs the ``train`` dependency group. Example:
-``uv run --group train python -m door_counter.eval_falls --model before=models/pose-coco
+``uv run --group train python -m fall_watch.eval_falls --model before=models/pose-coco
 --gmdcsa data/gmdcsa24/raw/<folder> --out measurements/falls-before.json``.
 """
 
@@ -34,10 +34,10 @@ import numpy as np
 import numpy.typing as npt
 from ultralytics.models import YOLO
 
-from door_counter.fall_data import gmdcsa_videos, video_frames
-from door_counter.gateway.fall_watch import PHONE_FPS_HZ, FallWatch, parse_bed
-from door_counter.gateway.messages import Frame, Item
-from door_counter.yolo_pose import DEFAULT_MIN_SCORE, DEFAULT_OVERLAP_IOU, Keypoint, Rect
+from fall_watch.fall_data import gmdcsa_videos, video_frames
+from fall_watch.gateway.fall_watch import PHONE_FPS_HZ, FallWatch, parse_bed
+from fall_watch.gateway.messages import Frame, Item
+from fall_watch.yolo_pose import DEFAULT_MIN_SCORE, DEFAULT_OVERLAP_IOU, Keypoint, Rect
 
 PHONE_INPUT_SIZE_PX = 320
 CLIP_ALERT_AFTER_S = 1.0

@@ -25,7 +25,7 @@
         </activity>
 
         <service
-            android:name=".CounterService"
+            android:name=".WatchService"
             android:exported="false" />
 
         <receiver

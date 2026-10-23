@@ -5,9 +5,9 @@ from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from door_counter.gateway.fall_watch import Alert, FallWatch, PersonState
-from door_counter.gateway.messages import Batch, Frame, Health, Preview
-from door_counter.yolo_pose import Rect
+from fall_watch.gateway.fall_watch import Alert, FallWatch, PersonState
+from fall_watch.gateway.messages import Batch, Frame, Health, Preview
+from fall_watch.yolo_pose import Rect
 
 DEFAULT_HISTORY_FRAMES = 600
 

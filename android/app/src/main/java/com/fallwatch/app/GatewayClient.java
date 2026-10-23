@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -30,7 +30,7 @@ import java.util.List;
  * the newest one is kept, and it is sent only when previews are switched on.
  */
 final class GatewayClient {
-    private static final String TAG = "DoorGateway";
+    private static final String TAG = "FallWatchGateway";
     private static final int MAX_QUEUED_FRAMES = 3000;  // about 5 minutes at 10 frames per second
     private static final int MAX_BATCH_FRAMES = 200;
     private static final int TIMEOUT_MS = 2000;

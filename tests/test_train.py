@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 pytest.importorskip("ultralytics", reason="needs the train group: uv run --group train pytest")
-from door_counter.train import repeat_room  # noqa: E402
+from fall_watch.train import repeat_room  # noqa: E402
 
 
 def test_room_pictures_are_listed_again(tmp_path: Path) -> None:

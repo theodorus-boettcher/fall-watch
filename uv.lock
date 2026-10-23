@@ -467,7 +467,7 @@ wheels = [
 ]
 
 [[package]]
-name = "door-counter"
+name = "fall-watch"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

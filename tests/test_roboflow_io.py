@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from door_counter import roboflow_io
+from fall_watch import roboflow_io
 
 
 def test_api_key_is_read_from_env_file(tmp_path: Path) -> None:

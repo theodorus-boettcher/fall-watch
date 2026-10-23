@@ -19,7 +19,7 @@ BOX_ROWS = 4
 KEYPOINT_COUNT = 17  # COCO person skeleton
 KEYPOINT_ROWS = KEYPOINT_COUNT * 3
 PAD_VALUE = 114
-DEFAULT_MIN_SCORE = 0.25  # MIN_SCORE in CounterService.java
+DEFAULT_MIN_SCORE = 0.25  # MIN_SCORE in WatchService.java
 DEFAULT_OVERLAP_IOU = 0.7  # kOverlapIou in detector.cpp, across classes
 MAX_PEOPLE = 50
 

@@ -5,11 +5,11 @@
 # Undo the hiding:  provision.sh --unhide      Give up device owner:  provision.sh --release
 # Wi-Fi: a router can have two radios (2.4 and 5 GHz) under one name, and a weak one makes frames, and so alerts,
 # run late. At the final spot, compare them:  adb shell dumpsys wifi | grep -A12 'Latest scan results'
-# and pin the stronger one (bssid any undoes it):  adb shell am broadcast -n com.doorcounter.app/.ProvisionReceiver \
+# and pin the stronger one (bssid any undoes it):  adb shell am broadcast -n com.fallwatch.app/.ProvisionReceiver \
 #   --es op pin-wifi --es ssid <wifi name> --es bssid <address>
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-pkg=com.doorcounter.app
+pkg=com.fallwatch.app
 
 send() {
   adb shell am broadcast -n "${pkg}/.ProvisionReceiver" "$@" < /dev/null | tr -d '\r' | sed -n 's/.*data="\(.*\)"/\1/p'

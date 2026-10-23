@@ -11,7 +11,7 @@ adb reboot
 adb wait-for-device
 until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do sleep 5; done
 if [ "${STOP_APP:-0}" = "1" ]; then
-  adb shell am force-stop com.doorcounter.app
+  adb shell am force-stop com.fallwatch.app
 fi
 sleep 300
 adb shell input keyevent 223  # screen off, same state for every measurement

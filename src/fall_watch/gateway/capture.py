@@ -11,7 +11,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from door_counter.gateway.messages import Preview
+from fall_watch.gateway.messages import Preview
 
 CLIP_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,47}")
 JPEG_QUALITY = 95

@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -34,7 +34,7 @@ final class Settings {
     final int threadCount;
     /** Skip the model while nothing moves (see {@link MotionGate}). On by default. */
     final boolean isMotionGateEnabled;
-    /** Which bundled model runs, e.g. {@code models/pose-coco} (ready-made) or {@code models/fall-v2}. */
+    /** Which bundled model runs, e.g. {@code models/pose-coco} (ready-made) or {@code models/fall-v3}. */
     final String modelName;
 
     private Settings(int rotationDeg, String gatewayUrl, boolean isPreviewEnabled, int threadCount,
@@ -88,7 +88,7 @@ final class Settings {
             throw new IllegalArgumentException("threads must be 1 to 4, got " + threadCount);
         }
         if (modelName == null || !modelName.matches(MODEL_NAME_PATTERN)) {
-            throw new IllegalArgumentException("model must look like models/sort-v2, got " + modelName);
+            throw new IllegalArgumentException("model must look like models/fall-v3, got " + modelName);
         }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_ROTATION_DEG, rotationDeg)

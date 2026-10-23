@@ -1,5 +1,5 @@
 [project]
-name = "door-counter"
+name = "fall-watch"
 version = "0.1.0"
 description = "Fall watch: a tiny pose model on a 2014 Android phone, alerts on a laptop gateway."
 requires-python = ">=3.12"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-door-gateway = "door_counter.gateway.server:main"
+fall-gateway = "fall_watch.gateway.server:main"
 
 [dependency-groups]
 dev = [

@@ -5,7 +5,7 @@
 # For a phone that does only this job, provision.sh also makes the app device owner and hides other apps.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-pkg=com.doorcounter.app
+pkg=com.fallwatch.app
 [ $# -ge 1 ] || { echo "usage: setup_phone.sh <gateway url, e.g. http://<laptop-ip>:8000> [path/to/app.apk]" >&2; exit 2; }
 gateway="$1"
 apk="${2:-${here}/../android/app/build/outputs/apk/release/app-release.apk}"

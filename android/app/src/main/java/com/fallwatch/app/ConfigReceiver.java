@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -6,16 +6,16 @@ import android.content.Intent;
 import android.util.Log;
 
 /**
- * Changes the settings from the laptop, then restarts the counter service so they take effect.
+ * Changes the settings from the laptop, then restarts the watch service so they take effect.
  *
  * <p>Guarded by {@code android.permission.DUMP} like {@link ProvisionReceiver}: only the adb shell
- * can reach it. Example: {@code adb shell am broadcast -n com.doorcounter.app/.ConfigReceiver
+ * can reach it. Example: {@code adb shell am broadcast -n com.fallwatch.app/.ConfigReceiver
  * --ei rotation 180 --ez preview true}. Extras left out keep their current value. Extras:
  * {@code rotation} (int), {@code gateway} (string), {@code preview} (boolean), {@code threads} (int),
- * {@code motion_gate} (boolean), {@code model} (string, e.g. {@code models/sort-v1}).
+ * {@code motion_gate} (boolean), {@code model} (string, e.g. {@code models/fall-v3}).
  */
 public final class ConfigReceiver extends BroadcastReceiver {
-    private static final String TAG = "DoorConfig";
+    private static final String TAG = "FallWatchConfig";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -32,7 +32,7 @@ public final class ConfigReceiver extends BroadcastReceiver {
             report("error: " + e.getMessage());
             return;
         }
-        Intent service = new Intent(context, CounterService.class);
+        Intent service = new Intent(context, WatchService.class);
         context.stopService(service);
         context.startService(service);
         report("saved " + Settings.load(context));

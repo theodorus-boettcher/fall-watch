@@ -1,6 +1,6 @@
 """HTTP gateway on the laptop: the phone POSTs detections, the browser shows them live.
 
-Run with ``uv run door-gateway`` and open http://127.0.0.1:8000. Over USB the phone reaches it
+Run with ``uv run fall-gateway`` and open http://127.0.0.1:8000. Over USB the phone reaches it
 after ``adb reverse tcp:8000 tcp:8000``; over Wi-Fi start it with ``--host 0.0.0.0`` and point
 the phone at the laptop's LAN address.
 
@@ -25,10 +25,10 @@ from importlib import resources
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from door_counter.gateway.capture import Capture, CaptureError
-from door_counter.gateway.fall_watch import parse_bed
-from door_counter.gateway.live_state import LiveSnapshot, LiveState
-from door_counter.gateway.messages import MessageError, parse_batch
+from fall_watch.gateway.capture import Capture, CaptureError
+from fall_watch.gateway.fall_watch import parse_bed
+from fall_watch.gateway.live_state import LiveSnapshot, LiveState
+from fall_watch.gateway.messages import MessageError, parse_batch
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -185,7 +185,7 @@ def main() -> None:
     parser.add_argument("--bed", type=lambda text: parse_bed(text=text), action="append", default=[],
                         help="bed zone x1,y1,x2,y2 in 0..1 of the upright picture; repeat for more beds")
     args = parser.parse_args()
-    page = resources.files("door_counter.gateway").joinpath("live.html").read_bytes()
+    page = resources.files("fall_watch.gateway").joinpath("live.html").read_bytes()
     handler = make_handler(state=LiveState(beds=args.bed), page=page, capture=Capture(root=args.capture_dir))
     with ThreadingHTTPServer((args.host, args.port), handler) as server:
         print(f"gateway on http://{args.host}:{args.port}", flush=True)

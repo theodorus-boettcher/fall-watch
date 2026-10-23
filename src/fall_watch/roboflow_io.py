@@ -2,9 +2,9 @@
 
 The key (the account's private API key) lives in the repo's git-ignored ``.env`` as ``ROBOFLOW_API_KEY=...``
 and is never printed. The workspace is the one the key belongs to.
-Run ``uv run python -m door_counter.roboflow_io`` to create (or find) the keypoint project,
+Run ``uv run python -m fall_watch.roboflow_io`` to create (or find) the keypoint project,
 ``... --upload data/fall-v1 --batch caucafall`` to upload a dataset in COCO keypoint layout (see
-``door_counter.fall_data``), and ``... --export data/rf-fall-v1`` to make a version and download it.
+``fall_watch.fall_data``), and ``... --export data/rf-fall-v1`` to make a version and download it.
 
 Auto Label does not do keypoint projects, so the room pictures the pose teacher missed get their boxes from
 SAM 3 in a second, box-only project (``BOX_PROJECT_ID``). The whole room flow:
@@ -16,7 +16,7 @@ SAM 3 in a second, box-only project (``BOX_PROJECT_ID``). The whole room flow:
 4. ``fall_data --sam3 data/rf-room-sam3 --out data/fall-room-sam3``: one box per picture, posture from the
    clip name.
 5. Upload both converted folders to the keypoint project, ``--export`` a version, and train with
-   ``door_counter.train --repeat-room 2`` so the room counts 3x next to the public data.
+   ``fall_watch.train --repeat-room 2`` so the room counts 3x next to the public data.
 """
 
 import argparse
@@ -33,7 +33,7 @@ import yaml
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.core.project import Project
 
-from door_counter.fall_data import FLIP_INDEX, JPEG_QUALITY, missed_room_pictures, scale_to_side
+from fall_watch.fall_data import FLIP_INDEX, JPEG_QUALITY, missed_room_pictures, scale_to_side
 
 PROJECT_ID = "fall-watch"
 PROJECT_TYPE = "keypoint-detection"

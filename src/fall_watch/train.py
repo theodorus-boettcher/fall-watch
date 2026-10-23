@@ -1,7 +1,7 @@
 """Train the phone model (YOLO26n-pose) on a GPU, score it, and export it for the phone.
 
 Needs the ``train`` dependency group (``uv sync --group train``). Example:
-``uv run --group train python -m door_counter.train --data data/fall-v1/data.yaml --name fall-v1``.
+``uv run --group train python -m fall_watch.train --data data/fall-v1/data.yaml --name fall-v1``.
 The phone files land in ``models/<name>/`` as ``<name>.param``, ``<name>.bin`` and ``<name>.labels``.
 """
 
@@ -24,7 +24,7 @@ OPTIMIZER = "AdamW"
 LEARNING_RATE = 0.001667
 MOMENTUM = 0.9
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
-ROOM_PREFIX = "room-"  # our room's pictures, named after their capture clip by door_counter.fall_data
+ROOM_PREFIX = "room-"  # our room's pictures, named after their capture clip by fall_watch.fall_data
 
 
 @dataclass(frozen=True)

@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 import pytest
 
-from door_counter.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher,
+from fall_watch.fall_data import (TeacherPerson, activity_ranges, coco_keypoints, match_teacher,
                                      missed_room_pictures, posture_at, read_yolo_box, room_samples, sam3_samples,
                                      yolo_line)
-from door_counter.yolo_pose import Rect
+from fall_watch.yolo_pose import Rect
 
 
 def teacher_at(*, box: Rect, confidence: float = 0.9) -> TeacherPerson:

@@ -19,7 +19,7 @@ the user is ever in these clips, so when the teacher finds several people (it of
 lying body) its top-scored one is taken. All of it goes to train; the room's ``test-*`` clips are the test.
 
 The room pictures where the teacher finds nobody (``missed_room_pictures``) get boxes from Roboflow's SAM 3
-Auto Label instead (see ``door_counter.roboflow_io``). ``--sam3`` reads that project's COCO export: all of a
+Auto Label instead (see ``fall_watch.roboflow_io``). ``--sam3`` reads that project's COCO export: all of a
 picture's outlines merge into one box (only the user is there), the posture comes from the clip name, and the
 keypoints come from the teacher only if it matches the box, so mostly "not labelled".
 
@@ -27,7 +27,7 @@ The split goes by person (``SPLIT_OF_SUBJECT``, ``GMDCSA_SPLIT_OF_SUBJECT``), so
 in two splits; GMDCSA-24's room 3 (person 4) is the test. Pictures are scaled to ``SIDE_PX``.
 
 Needs the ``teacher`` dependency group. Example:
-``uv run --group teacher python -m door_counter.fall_data --caucafall data/caucafall/raw --out data/fall-v1``.
+``uv run --group teacher python -m fall_watch.fall_data --caucafall data/caucafall/raw --out data/fall-v1``.
 """
 
 import argparse
@@ -41,7 +41,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
-from door_counter.yolo_pose import KEYPOINT_COUNT, Rect, box_iou
+from fall_watch.yolo_pose import KEYPOINT_COUNT, Rect, box_iou
 
 CLASS_NAMES = ("not lying", "lying")  # our class ids 0 and 1; CAUCAFall's 0 = nofall, 1 = fall
 KEYPOINT_NAMES = ("nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder",

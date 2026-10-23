@@ -2,7 +2,7 @@
 
 The phone POSTs one JSON batch to ``/frames`` at a time (see ``GatewayClient.java``). Times arrive
 in milliseconds and are converted to seconds here. Boxes and keypoints are 0..1 of the upright frame
-(see ``door_counter.yolo_pose``).
+(see ``fall_watch.yolo_pose``).
 """
 
 import base64
@@ -10,7 +10,7 @@ import binascii
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
-from door_counter.yolo_pose import KEYPOINT_COUNT, Keypoint, Rect
+from fall_watch.yolo_pose import KEYPOINT_COUNT, Keypoint, Rect
 
 MILLIS_PER_S = 1000.0
 RECT_VALUES = 4

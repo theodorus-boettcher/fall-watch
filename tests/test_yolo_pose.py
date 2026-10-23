@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from door_counter import yolo_pose
+from fall_watch import yolo_pose
 
 
 def test_letterbox_centres_a_landscape_frame() -> None:

@@ -13,7 +13,7 @@ MIN_BATTERY_PCT="${MIN_BATTERY_PCT:-25}"
 GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:8000}"
 out="$(cd "$(dirname "$0")/.." && pwd)/measurements/heat-${label}.csv"
 
-adb shell am broadcast -n com.doorcounter.app/.ConfigReceiver --ez preview false --ez motion_gate "${motion_gate}" \
+adb shell am broadcast -n com.fallwatch.app/.ConfigReceiver --ez preview false --ez motion_gate "${motion_gate}" \
   | tr -d '\r' | tail -1
 adb shell input keyevent 223  # screen off, as in use
 echo "elapsed_s,fps,mean_inference_ms,cpu_c,battery_c,battery_pct,charging" > "${out}"
@@ -36,5 +36,5 @@ if h:
   fi
   if [ "${battery_pct}" -lt "${MIN_BATTERY_PCT}" ]; then stop_reason="battery below ${MIN_BATTERY_PCT}%"; break; fi
 done
-adb shell am force-stop com.doorcounter.app
+adb shell am force-stop com.fallwatch.app
 echo "stopped: ${stop_reason}; wrote ${out}"

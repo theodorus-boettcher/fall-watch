@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 /**
  * Decides whether a camera frame is worth running the model on.

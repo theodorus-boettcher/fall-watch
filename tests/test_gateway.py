@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 import pytest
 
-from door_counter.gateway.capture import Capture, CaptureError
-from door_counter.gateway.live_state import LiveState
-from door_counter.gateway.messages import MessageError, Preview, parse_batch
-from door_counter.gateway.server import snapshot_to_json
+from fall_watch.gateway.capture import Capture, CaptureError
+from fall_watch.gateway.live_state import LiveState
+from fall_watch.gateway.messages import MessageError, Preview, parse_batch
+from fall_watch.gateway.server import snapshot_to_json
 
 
 def make_item(*, x2: float = 0.3, class_id: int = 1) -> dict[str, object]:

@@ -16,8 +16,8 @@ import numpy as np
 import supervision as sv
 from trackers import ByteTrackTracker
 
-from door_counter.gateway.messages import Frame, Item
-from door_counter.yolo_pose import Keypoint, Rect
+from fall_watch.gateway.messages import Frame, Item
+from fall_watch.yolo_pose import Keypoint, Rect
 
 LYING_CLASS = "lying"
 ALERT_AFTER_S = 5.0  # short for the demo; a care home would pick something like 30 s

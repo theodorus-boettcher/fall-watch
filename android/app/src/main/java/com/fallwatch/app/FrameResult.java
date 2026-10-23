@@ -1,4 +1,4 @@
-package com.doorcounter.app;
+package com.fallwatch.app;
 
 /** What the detector found in one frame. Immutable. */
 final class FrameResult {
