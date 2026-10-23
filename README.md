@@ -10,7 +10,9 @@ Built with Roboflow: the dataset, SAM 3 auto labelling and dataset versions on t
 Roboflow's open-source [`trackers`](https://github.com/roboflow/trackers) and
 [`supervision`](https://github.com/roboflow/supervision) on the laptop.
 
-<!-- Demo video: add the link here. -->
+[![Lying on the floor raises an alert after 5 seconds](docs/demo.gif)](https://github.com/theodorus-boettcher/fall-watch/releases/download/v1.1/fall-watch-demo.mp4)
+
+The full 2-minute video: [fall-watch-demo.mp4](https://github.com/theodorus-boettcher/fall-watch/releases/download/v1.1/fall-watch-demo.mp4).
 
 ## How it works
 
