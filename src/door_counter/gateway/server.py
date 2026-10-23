@@ -26,9 +26,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from door_counter.gateway.capture import Capture, CaptureError
+from door_counter.gateway.fall_watch import parse_bed
 from door_counter.gateway.live_state import LiveSnapshot, LiveState
 from door_counter.gateway.messages import MessageError, parse_batch
-from door_counter.yolo_pose import Rect
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -65,27 +65,6 @@ def snapshot_to_json(*, snapshot: LiveSnapshot, now_wall_time_s: float) -> dict[
     }
 
 
-def parse_bed(*, text: str) -> Rect:
-    """Read a ``--bed`` value.
-
-    Args:
-        text: ``x1,y1,x2,y2`` in 0..1 of the upright picture.
-
-    Returns:
-        The bed zone.
-
-    Raises:
-        argparse.ArgumentTypeError: if it is not 4 numbers in 0..1 with x1 < x2 and y1 < y2.
-    """
-    try:
-        x1, y1, x2, y2 = (float(v) for v in text.split(","))
-    except ValueError as e:
-        raise argparse.ArgumentTypeError(f"bed must be x1,y1,x2,y2, got {text!r}") from e
-    if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
-        raise argparse.ArgumentTypeError(f"bed corners must be in 0..1 with x1 < x2 and y1 < y2, got {text!r}")
-    return Rect(x1=x1, y1=y1, x2=x2, y2=y2)
-
-
 def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class bound to one shared state.
 
@@ -112,10 +91,14 @@ def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[Bas
                 self.send_response(HTTPStatus.NO_CONTENT)
                 self.end_headers()
                 return None
-            if self.path != "/frames":
+            if url.path != "/frames":
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return None
-            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self.send_error(HTTPStatus.BAD_REQUEST, explain="Content-Length is not a number")
+                return None
             if length <= 0 or length > MAX_BODY_BYTES:
                 self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > 0 else HTTPStatus.LENGTH_REQUIRED)
                 return None
@@ -154,7 +137,7 @@ def make_handler(*, state: LiveState, page: bytes, capture: Capture) -> type[Bas
 
         def do_GET(self) -> None:
             """Serve the page, the state as JSON, or the preview picture."""
-            path = self.path.split("?", maxsplit=1)[0]
+            path = urlsplit(self.path).path
             if path == "/":
                 self._send(body=page, content_type="text/html; charset=utf-8")
             elif path == "/api/latest":

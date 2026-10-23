@@ -7,6 +7,7 @@ every bed zone for ``ALERT_AFTER_S`` raises an alert. The alert ends when the sa
 lying, or when staff clear it on the live page (a person lying still may stop being found).
 """
 
+import argparse
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
@@ -52,7 +53,15 @@ class PersonState:
 
 
 def _middle(*, a: Keypoint, b: Keypoint) -> tuple[float, float] | None:
-    """Middle of two keypoints, or the one that is visible; None if neither is."""
+    """Find the middle of two keypoints.
+
+    Args:
+        a: one keypoint.
+        b: the other.
+
+    Returns:
+        Their middle, or the one that is visible; None if neither is.
+    """
     seen = [k for k in (a, b) if k.visibility >= MIN_VISIBILITY]
     if not seen:
         return None
@@ -85,9 +94,38 @@ def is_lying(*, item: Item, class_names: Sequence[str], width_px: int, height_px
 
 
 def is_in_bed(*, box: Rect, beds: Sequence[Rect]) -> bool:
-    """Whether the box centre lies inside one of the bed zones (all 0..1 of the upright frame)."""
+    """Check whether a person is in bed.
+
+    Args:
+        box: the person's box, 0..1 of the upright frame.
+        beds: bed zones, 0..1 of the upright frame.
+
+    Returns:
+        True if the box centre lies inside one of the bed zones.
+    """
     cx, cy = (box.x1 + box.x2) / 2, (box.y1 + box.y2) / 2
     return any(b.x1 <= cx <= b.x2 and b.y1 <= cy <= b.y2 for b in beds)
+
+
+def parse_bed(*, text: str) -> Rect:
+    """Read a ``--bed`` value.
+
+    Args:
+        text: ``x1,y1,x2,y2`` in 0..1 of the upright picture.
+
+    Returns:
+        The bed zone.
+
+    Raises:
+        argparse.ArgumentTypeError: if it is not 4 numbers in 0..1 with x1 < x2 and y1 < y2.
+    """
+    try:
+        x1, y1, x2, y2 = (float(v) for v in text.split(","))
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"bed must be x1,y1,x2,y2, got {text!r}") from e
+    if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
+        raise argparse.ArgumentTypeError(f"bed corners must be in 0..1 with x1 < x2 and y1 < y2, got {text!r}")
+    return Rect(x1=x1, y1=y1, x2=x2, y2=y2)
 
 
 class FallWatch:
@@ -121,6 +159,7 @@ class FallWatch:
         self._people: tuple[PersonState, ...] = ()
         self._last_time_s: float | None = None
         self._tracker_offset_s = 0.0  # added to the phone's clock so the tracker's time never goes back
+        return None
 
     def update(self, *, frame: Frame, class_names: Sequence[str]) -> None:
         """Feed the next frame, in order.

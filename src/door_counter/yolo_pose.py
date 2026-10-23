@@ -1,5 +1,8 @@
 """Reference decoding of YOLO26-pose (ncnn export), the same math as ``detector.cpp`` on the phone.
 
+Only the tests run the decoder, to pin that math down; the phone runs ``detector.cpp``. ``Rect``, ``Keypoint``
+and ``box_iou`` are used everywhere.
+
 The model sees a square letterboxed picture. ``out0`` has one column per candidate: cx, cy, w, h
 (letterbox pixels), one score per class, then x, y and visibility for each of the 17 COCO keypoints
 (x and y already in letterbox pixels, visibility already 0..1).
@@ -16,8 +19,8 @@ BOX_ROWS = 4
 KEYPOINT_COUNT = 17  # COCO person skeleton
 KEYPOINT_ROWS = KEYPOINT_COUNT * 3
 PAD_VALUE = 114
-DEFAULT_MIN_SCORE = 0.25
-DEFAULT_OVERLAP_IOU = 0.7
+DEFAULT_MIN_SCORE = 0.25  # MIN_SCORE in CounterService.java
+DEFAULT_OVERLAP_IOU = 0.7  # kOverlapIou in detector.cpp, across classes
 MAX_PEOPLE = 50
 
 
@@ -202,12 +205,28 @@ def decode(
 
 
 def _to_x(*, v: float, letterbox: Letterbox) -> float:
-    """Letterbox pixels to 0..1 of the upright frame's width, clipped."""
+    """Map an x from letterbox pixels to 0..1 of the upright frame's width, clipped.
+
+    Args:
+        v: x in letterbox pixels.
+        letterbox: how the frame was letterboxed.
+
+    Returns:
+        x in 0..1.
+    """
     return float(np.clip((v - letterbox.pad_left_px) / letterbox.content_width_px, 0.0, 1.0))
 
 
 def _to_y(*, v: float, letterbox: Letterbox) -> float:
-    """Letterbox pixels to 0..1 of the upright frame's height, clipped."""
+    """Map a y from letterbox pixels to 0..1 of the upright frame's height, clipped.
+
+    Args:
+        v: y in letterbox pixels.
+        letterbox: how the frame was letterboxed.
+
+    Returns:
+        y in 0..1.
+    """
     return float(np.clip((v - letterbox.pad_top_px) / letterbox.content_height_px, 0.0, 1.0))
 
 

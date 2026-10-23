@@ -1,4 +1,4 @@
-"""Turn public fall videos into a posture + keypoint dataset: COCO keypoints for Roboflow, YOLO pose labels.
+"""Turn fall videos and our room's clips into a posture + keypoint dataset: COCO for Roboflow, YOLO pose labels.
 
 CAUCAFall (CC BY 4.0, ``--caucafall``) has 10 people doing 10 activities each in one room, filmed from a
 wall corner at 2.15 m. Every frame has one person box and a class: ``fall`` when the body is on the ground
@@ -91,6 +91,15 @@ class Sample:
 
 
 @dataclass(frozen=True)
+class GmdcsaVideo:
+    """One GMDCSA-24 video named in its person's ``Fall.csv`` or ``ADL.csv``."""
+
+    kind: str  # Fall or ADL
+    path: Path
+    ranges: dict[str, list[tuple[float, float]]]  # from activity_ranges
+
+
+@dataclass(frozen=True)
 class TeacherPerson:
     """One person from the teacher: box and keypoints in 0..1, keypoint confidences."""
 
@@ -166,23 +175,80 @@ def posture_at(*, ranges: dict[str, list[tuple[float, float]]], time_s: float) -
         1 (lying) when sleeping or from ``FALL_SETTLE_S`` into a fall, 0 (not lying) during any other named
         activity, None when nothing is named, the activity is unclear, or the labels disagree.
     """
-    def active(name: str) -> list[tuple[float, float]]:
+    def active(*, name: str) -> list[tuple[float, float]]:
         return [(a, b) for a, b in ranges.get(name, []) if a <= time_s <= b]
 
-    if any(active(name) for name in UNCLEAR_ACTIVITIES):
+    if any(active(name=name) for name in UNCLEAR_ACTIVITIES):
         return None
-    falling = active("Falling")
+    falling = active(name="Falling")
     if any(time_s < a + FALL_SETTLE_S for a, _ in falling):
         return None
-    lying = bool(falling) or any(active(name) for name in LYING_ACTIVITIES)
-    other = any(active(name) for name in ranges if name not in ("Falling", *LYING_ACTIVITIES))
+    lying = bool(falling) or any(active(name=name) for name in LYING_ACTIVITIES)
+    other = any(active(name=name) for name in ranges if name not in ("Falling", *LYING_ACTIVITIES))
     if lying and other:
         return None
     return 1 if lying else 0 if other else None
 
 
+def gmdcsa_videos(*, subject: Path) -> Iterator[GmdcsaVideo]:
+    """One GMDCSA-24 person's videos, as their ``Fall.csv`` and ``ADL.csv`` list them.
+
+    Args:
+        subject: a ``Subject N`` folder.
+
+    Returns:
+        A generator of the listed videos that exist, with their activity time ranges.
+    """
+    for kind in ("Fall", "ADL"):
+        for line in (subject / f"{kind}.csv").read_text(encoding="utf-8").splitlines()[1:]:
+            file_name = line.split(",", maxsplit=1)[0].strip()
+            video = subject / kind / file_name
+            if file_name and video.is_file():
+                yield GmdcsaVideo(kind=kind, path=video, ranges=activity_ranges(text=line))
+    return None
+
+
+def video_frames(*, video: Path, every_s: float) -> Iterator[tuple[int, float, npt.NDArray[np.uint8]]]:
+    """Pictures from a video, about one every ``every_s``.
+
+    Args:
+        video: the video file.
+        every_s: seconds between kept pictures.
+
+    Returns:
+        A generator of (frame index, time in seconds, BGR picture).
+    """
+    capture = cv2.VideoCapture(str(video))
+    fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
+    step = max(1, round(fps * every_s))
+    index = 0
+    try:
+        while True:
+            ok, bgr = capture.read()
+            if not ok:
+                break
+            if index % step == 0:
+                yield index, index / fps, np.asarray(bgr, dtype=np.uint8)
+            index += 1
+    finally:
+        capture.release()
+    return None
+
+
+def room_kind(*, clip_name: str) -> str:
+    """A room clip's kind, its name without the number: ``room-up`` for ``room-up-2``."""
+    return clip_name.rsplit("-", maxsplit=1)[0]
+
+
 def caucafall_samples(*, root: Path) -> Iterator[Sample]:
-    """CAUCAFall pictures with their boxes and classes, split by person."""
+    """CAUCAFall pictures with their boxes and classes, split by person.
+
+    Args:
+        root: the folder with ``Subject.1`` to ``Subject.10``.
+
+    Returns:
+        A generator of samples.
+    """
     subjects = sorted((d for d in root.iterdir() if d.is_dir() and SUBJECT_NUMBER.search(d.name)),
                       key=lambda d: int(SUBJECT_NUMBER.findall(d.name)[-1]))
     for subject_dir in subjects:
@@ -197,40 +263,40 @@ def caucafall_samples(*, root: Path) -> Iterator[Sample]:
 
 
 def gmdcsa_samples(*, root: Path) -> Iterator[Sample]:
-    """GMDCSA-24 pictures every ``GMDCSA_EVERY_S`` with the posture from the time ranges (no boxes)."""
+    """GMDCSA-24 pictures every ``GMDCSA_EVERY_S`` with the posture from the time ranges (no boxes).
+
+    Args:
+        root: the folder with ``Subject 1`` to ``Subject 4``.
+
+    Returns:
+        A generator of samples, split by person.
+    """
     for subject in sorted(p for p in root.iterdir() if p.is_dir() and p.name.startswith("Subject")):
         number = int(SUBJECT_NUMBER.findall(subject.name)[-1])
-        for kind in ("Fall", "ADL"):
-            for line in (subject / f"{kind}.csv").read_text(encoding="utf-8").splitlines()[1:]:
-                file_name = line.split(",", maxsplit=1)[0].strip()
-                video = subject / kind / file_name
-                if not file_name or not video.is_file():
-                    continue
-                ranges = activity_ranges(text=line)
-                capture = cv2.VideoCapture(str(video))
-                fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
-                step = max(1, round(fps * GMDCSA_EVERY_S))
-                index = 0
-                try:
-                    while True:
-                        ok, bgr = capture.read()
-                        if not ok:
-                            break
-                        class_id = posture_at(ranges=ranges, time_s=index / fps) if index % step == 0 else None
-                        if class_id is not None:
-                            yield Sample(split=GMDCSA_SPLIT_OF_SUBJECT[number],
-                                         stem=f"g{number}_{kind}_{video.stem}_{index:04d}",
-                                         bgr=np.asarray(bgr, dtype=np.uint8), class_id=class_id, box=None)
-                        index += 1
-                finally:
-                    capture.release()
+        for video in gmdcsa_videos(subject=subject):
+            for index, time_s, bgr in video_frames(video=video.path, every_s=GMDCSA_EVERY_S):
+                class_id = posture_at(ranges=video.ranges, time_s=time_s)
+                if class_id is not None:
+                    yield Sample(split=GMDCSA_SPLIT_OF_SUBJECT[number],
+                                 stem=f"g{number}_{video.kind}_{video.path.stem}_{index:04d}", bgr=bgr,
+                                 class_id=class_id, box=None)
     return None
 
 
 def room_samples(*, root: Path) -> Iterator[Sample]:
-    """Our room's ``room-*`` capture clips, the posture from the clip name, all in train (no boxes)."""
+    """Our room's ``room-*`` capture clips, the posture from the clip name, all in train (no boxes).
+
+    Args:
+        root: our capture folder.
+
+    Returns:
+        A generator of samples; ``room-empty`` pictures have no class.
+
+    Raises:
+        ValueError: for a ``room-*`` clip of an unknown kind.
+    """
     for clip in sorted(d for d in root.iterdir() if d.is_dir() and d.name.startswith("room-")):
-        kind = clip.name.rsplit("-", maxsplit=1)[0]
+        kind = room_kind(clip_name=clip.name)
         if kind not in ROOM_CLASS_OF_KIND:
             raise ValueError(f"{clip.name}: room clips are named room-up-N, room-lying-N or room-empty-N")
         for image in sorted(clip.glob("*.jpg")):
@@ -253,12 +319,19 @@ def missed_room_pictures(*, root: Path, converted: Path) -> list[Path]:
     """
     labels = converted / "train" / "labels"
     clips = sorted(d for d in root.iterdir() if d.is_dir() and d.name.startswith("room-"))
-    return [image for clip in clips if ROOM_CLASS_OF_KIND.get(clip.name.rsplit("-", maxsplit=1)[0]) is not None
+    return [image for clip in clips if ROOM_CLASS_OF_KIND.get(room_kind(clip_name=clip.name)) is not None
             for image in sorted(clip.glob("*.jpg")) if not (labels / f"{clip.name}_{image.stem}.txt").is_file()]
 
 
 def sam3_samples(*, root: Path) -> Iterator[Sample]:
-    """Room pictures boxed by SAM 3 Auto Label, from a Roboflow COCO export; pictures with no outline are left out."""
+    """Room pictures boxed by SAM 3 Auto Label, from a Roboflow COCO export.
+
+    Args:
+        root: the export, with one ``_annotations.coco.json`` per split folder.
+
+    Returns:
+        A generator of samples, one merged box each; pictures with no outline are left out.
+    """
     for coco_file in sorted(root.glob("*/_annotations.coco.json")):
         coco = json.loads(coco_file.read_text(encoding="utf-8"))
         outlines: dict[int, list[list[float]]] = {}
@@ -267,7 +340,7 @@ def sam3_samples(*, root: Path) -> Iterator[Sample]:
         for image in coco["images"]:
             found = outlines.get(image["id"], [])
             stem = image["file_name"].split(ROBOFLOW_RENAME)[0]
-            class_id = ROOM_CLASS_OF_KIND.get(stem.split("_")[0].rsplit("-", maxsplit=1)[0])
+            class_id = ROOM_CLASS_OF_KIND.get(room_kind(clip_name=stem.split("_")[0]))  # stem: <clip>_<frame>
             if not found or class_id is None:
                 continue
             bgr = cv2.imread(str(coco_file.parent / image["file_name"]))
@@ -284,14 +357,29 @@ def sam3_samples(*, root: Path) -> Iterator[Sample]:
 
 
 def scale_to_side(*, bgr: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-    """The picture scaled so its longer side is ``SIDE_PX``."""
+    """Scale a picture so its longer side is ``SIDE_PX``.
+
+    Args:
+        bgr: the picture.
+
+    Returns:
+        The scaled picture.
+    """
     scale = SIDE_PX / max(bgr.shape[:2])
     small = cv2.resize(bgr, (round(bgr.shape[1] * scale), round(bgr.shape[0] * scale)), interpolation=cv2.INTER_AREA)
     return np.asarray(small, dtype=np.uint8)
 
 
 def match_teacher(*, box: Rect, people: Sequence[TeacherPerson]) -> TeacherPerson | None:
-    """The teacher's person that overlaps the labelled box most, if by ``MATCH_IOU`` or more."""
+    """Find the teacher's person for a labelled box.
+
+    Args:
+        box: the dataset's box, 0..1.
+        people: the teacher's people.
+
+    Returns:
+        The one that overlaps the box most, if by ``MATCH_IOU`` or more; otherwise None.
+    """
     best, best_iou = None, MATCH_IOU
     for person in people:
         iou = box_iou(a=box, b=person.box)
@@ -321,7 +409,18 @@ def coco_keypoints(*, person: TeacherPerson | None, width_px: int, height_px: in
 
 
 def yolo_line(*, class_id: int, box: Rect, keypoints: Sequence[float], width_px: int, height_px: int) -> str:
-    """One Ultralytics pose label line: class, box (cx cy w h) and x y v per keypoint, all 0..1."""
+    """Write one Ultralytics pose label line.
+
+    Args:
+        class_id: our class.
+        box: the box, 0..1.
+        keypoints: COCO keypoints in pixels, from ``coco_keypoints``.
+        width_px: picture width.
+        height_px: picture height.
+
+    Returns:
+        Class, box (cx cy w h) and x y v per keypoint, all 0..1.
+    """
     cx, cy, w, h = (box.x1 + box.x2) / 2, (box.y1 + box.y2) / 2, box.x2 - box.x1, box.y2 - box.y1
     points = []
     for i in range(0, len(keypoints), 3):
@@ -331,7 +430,15 @@ def yolo_line(*, class_id: int, box: Rect, keypoints: Sequence[float], width_px:
 
 
 def run_teacher(*, model: object, image_rgb: npt.NDArray[np.uint8]) -> list[TeacherPerson]:
-    """People found by RF-DETR Keypoint, in 0..1 of the picture."""
+    """Find people with RF-DETR Keypoint.
+
+    Args:
+        model: the loaded teacher.
+        image_rgb: the picture.
+
+    Returns:
+        Its people, best score first, in 0..1 of the picture.
+    """
     height, width = image_rgb.shape[:2]
     found = model.predict(image_rgb, threshold=TEACHER_MIN_SCORE)  # type: ignore[attr-defined]
     boxes = found.data.get("xyxy")
@@ -346,7 +453,7 @@ def run_teacher(*, model: object, image_rgb: npt.NDArray[np.uint8]) -> list[Teac
 
 def main() -> None:
     """Convert one dataset with teacher keypoints into ``<out>/<split>/`` (images, labels, COCO file)."""
-    parser = argparse.ArgumentParser(description="Public fall videos -> posture and keypoint dataset.")
+    parser = argparse.ArgumentParser(description="Fall videos and room clips -> posture and keypoint dataset.")
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the 10 subject folders")
     source.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the 4 subject folders")

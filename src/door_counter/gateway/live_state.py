@@ -59,6 +59,7 @@ class LiveState:
         self._dropped_frames = 0
         self._last_batch_wall_time_s: float | None = None
         self._watch = FallWatch(beds=beds)
+        return None
 
     def add_batch(self, *, batch: Batch, received_wall_time_s: float) -> None:
         """Take in one batch from the phone.

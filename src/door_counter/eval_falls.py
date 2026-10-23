@@ -14,7 +14,9 @@ Clip sets:
     ``--caucafall``: CAUCAFall's held-out people (``--caucafall-subjects``, 9 and 10 by default): one video per
     activity; ``Fall *`` activities are falls, and the first frame labelled ``fall`` is when the body is down.
     ``--captures``: our own test clips recorded with the gateway (``test-fall-*`` are falls, other ``test-*``
-    clips are normal). Their pictures are named ``<session>_<frame id>.jpg``; times come from the frame ids.
+    clips are normal). Their pictures are named ``<session>_<frame id>.jpg``; times come from the frame ids at
+    ``PHONE_FRAME_RATE_HZ``. That holds for clips recorded with the motion gate off, as all of ours are: with it
+    on, a still room runs about 1 frame a second.
 
 Needs the ``train`` dependency group. Example:
 ``uv run --group train python -m door_counter.eval_falls --model before=models/pose-coco
@@ -32,16 +34,12 @@ import numpy as np
 import numpy.typing as npt
 from ultralytics.models import YOLO
 
-from door_counter.fall_data import activity_ranges
-from door_counter.gateway.fall_watch import FallWatch
+from door_counter.fall_data import gmdcsa_videos, video_frames
+from door_counter.gateway.fall_watch import PHONE_FPS_HZ, FallWatch, parse_bed
 from door_counter.gateway.messages import Frame, Item
-from door_counter.gateway.server import parse_bed
-from door_counter.yolo_pose import Keypoint, Rect
+from door_counter.yolo_pose import DEFAULT_MIN_SCORE, DEFAULT_OVERLAP_IOU, Keypoint, Rect
 
 PHONE_INPUT_SIZE_PX = 320
-PHONE_MIN_SCORE = 0.25  # MIN_SCORE in CounterService.java
-PHONE_OVERLAP_IOU = 0.7  # kOverlapIou in detector.cpp, across classes
-PHONE_FPS_HZ = 5.0
 CLIP_ALERT_AFTER_S = 1.0
 CAUCAFALL_FPS = 23.0
 PHONE_FRAME_RATE_HZ = 5.5  # measured on the S5 with YOLO26n-pose at 320; turns capture frame ids into times
@@ -98,17 +96,11 @@ def gmdcsa_clips(*, root: Path, subjects: Sequence[int] = (1, 2, 3, 4)) -> list[
     """
     clips = []
     for subject in sorted(root / f"Subject {n}" for n in subjects):
-        for kind in ("Fall", "ADL"):
-            for line in (subject / f"{kind}.csv").read_text(encoding="utf-8").splitlines()[1:]:
-                file_name = line.split(",", maxsplit=1)[0].strip()
-                video = subject / kind / file_name
-                if not file_name or not video.is_file():
-                    continue
-                ranges = activity_ranges(text=line)
-                falling = ranges.get("Falling")
-                clips.append(Clip(name=f"{subject.name.replace(' ', '')}/{kind}/{file_name}", path=video,
-                                  is_fall=kind == "Fall", has_sleeping="Sleeping" in ranges,
-                                  fall_start_s=falling[0][0] if falling else None))
+        for video in gmdcsa_videos(subject=subject):
+            falling = video.ranges.get("Falling")
+            clips.append(Clip(name=f"{subject.name.replace(' ', '')}/{video.kind}/{video.path.name}", path=video.path,
+                              is_fall=video.kind == "Fall", has_sleeping="Sleeping" in video.ranges,
+                              fall_start_s=falling[0][0] if falling else None))
     return clips
 
 
@@ -166,25 +158,20 @@ def sampled_frames(*, video: Path) -> Iterator[tuple[float, npt.NDArray[np.uint8
                 yield int(picture_path.stem.rsplit("_", maxsplit=1)[-1]) / PHONE_FRAME_RATE_HZ, np.asarray(
                     picture, dtype=np.uint8)
         return None
-    capture = cv2.VideoCapture(str(video))
-    fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
-    step = max(1, round(fps / PHONE_FPS_HZ))
-    index = 0
-    try:
-        while True:
-            ok, picture = capture.read()
-            if not ok:
-                break
-            if index % step == 0:
-                yield index / fps, np.asarray(picture, dtype=np.uint8)
-            index += 1
-    finally:
-        capture.release()
+    for _, time_s, picture in video_frames(video=video, every_s=1 / PHONE_FPS_HZ):
+        yield time_s, picture
     return None
 
 
 def people_of(*, result: object) -> tuple[Item, ...]:
-    """Turn one Ultralytics pose result into the items the phone would send."""
+    """Turn one Ultralytics pose result into the items the phone would send.
+
+    Args:
+        result: one result of ``YOLO.predict``.
+
+    Returns:
+        Its people, as the phone sends them.
+    """
     boxes, keypoints = getattr(result, "boxes", None), getattr(result, "keypoints", None)  # predict() is typed loosely
     if boxes is None or keypoints is None or len(boxes) == 0:
         return ()
@@ -215,8 +202,8 @@ def run_clip(*, model: YOLO, name: str, clip: Clip, beds: Sequence[Rect] = (),
     watch = FallWatch(beds=beds, alert_after_s=alert_after_s)
     class_names = [model.names[i] for i in sorted(model.names)]
     for k, (time_s, picture) in enumerate(sampled_frames(video=clip.path)):
-        (result,) = list(model.predict(source=picture, imgsz=PHONE_INPUT_SIZE_PX, conf=PHONE_MIN_SCORE,
-                                       iou=PHONE_OVERLAP_IOU, agnostic_nms=True, verbose=False))
+        (result,) = list(model.predict(source=picture, imgsz=PHONE_INPUT_SIZE_PX, conf=DEFAULT_MIN_SCORE,
+                                       iou=DEFAULT_OVERLAP_IOU, agnostic_nms=True, verbose=False))
         height, width = picture.shape[:2]
         watch.update(frame=Frame(frame_id=k, wall_time_s=time_s, width_px=width, height_px=height, inference_s=0.0,
                                  items=people_of(result=result)), class_names=class_names)
@@ -251,7 +238,8 @@ def summarise(*, model: str, clip_set: str, results: Sequence[ClipResult]) -> Su
 def main() -> None:
     """Score every model on the clips, print a table and save JSON."""
     parser = argparse.ArgumentParser(description="Score fall alerts on labelled clips.")
-    parser.add_argument("--model", action="append", required=True, help="name=ncnn folder, e.g. before=models/pose-coco")
+    parser.add_argument("--model", action="append", required=True,
+                        help="name=ncnn folder, e.g. before=models/pose-coco")
     parser.add_argument("--gmdcsa", type=Path, help="GMDCSA-24 folder with the Subject folders")
     parser.add_argument("--gmdcsa-subjects", type=int, nargs="+", default=[1, 2, 3, 4])
     parser.add_argument("--caucafall", type=Path, help="CAUCAFall folder with the Subject.N folders")
@@ -283,11 +271,12 @@ def main() -> None:
                     for clip in clips]
             results += mine
             summaries.append(summarise(model=name, clip_set=set_name, results=mine))
-    print(f"{'model':10} {'clips':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} {'s to alert':>11}")
+    print(f"{'model':10} {'clips':10} {'falls caught':>13} {'false alarms':>13} {'sleeping alerts':>16} "
+          f"{'s to alert':>11}")
     for s in summaries:
         delay = "-" if s.mean_seconds_to_alert is None else f"{s.mean_seconds_to_alert:.1f}"
-        print(f"{s.model:10} {s.clip_set:10} {s.falls_caught:>6} / {s.falls:<4} {s.false_alarms:>6} / {s.normal_clips:<4} "
-              f"{s.sleeping_alerts:>8} / {s.sleeping_clips:<5} {delay:>11}")
+        print(f"{s.model:10} {s.clip_set:10} {s.falls_caught:>6} / {s.falls:<4} {s.false_alarms:>6} / "
+              f"{s.normal_clips:<4} {s.sleeping_alerts:>8} / {s.sleeping_clips:<5} {delay:>11}")
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps({"summaries": [asdict(s) for s in summaries],

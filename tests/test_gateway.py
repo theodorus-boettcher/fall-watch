@@ -1,7 +1,6 @@
 """Tests for the gateway's message parsing and live state."""
 
 import base64
-import copy
 from pathlib import Path
 
 import cv2
@@ -172,12 +171,12 @@ def test_history_is_bounded() -> None:
 
 def test_snapshot_json_leaves_out_the_picture() -> None:
     state = LiveState()
-    state.add_batch(batch=parse_batch(payload=copy.deepcopy(make_payload())), received_wall_time_s=10.0)
+    state.add_batch(batch=parse_batch(payload=make_payload()), received_wall_time_s=10.0)
     data = snapshot_to_json(snapshot=state.snapshot(), now_wall_time_s=12.5)
     assert data["seconds_since_last_batch"] == pytest.approx(2.5)
     assert data["preview"] == {"frame_id": 1, "rotation_deg": 180}
     assert data["class_names"] == ["not lying", "lying"]
-    assert data["alerts"] == [] and len(data["people"]) == 1
+    assert data["alerts"] == [] and isinstance(data["people"], list) and len(data["people"]) == 1
     assert "jpeg" not in str(data)
 
 

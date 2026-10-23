@@ -1,1 +1,1 @@
-"""Real-time people counter for a shop door: gateway, counting, replay and evaluation."""
+"""Fall watch: the laptop gateway, the dataset and training tools, and the fall evaluation."""

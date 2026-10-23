@@ -1,7 +1,7 @@
 """Save the phone's preview pictures into named clips, as new training and test data.
 
-One clip holds one thing: a single material (``metal-1``), or a test scene whose contents are
-written down. The pictures are saved upright, the way the model sees them.
+One clip holds one thing: training pictures of one kind (``room-up-1``, ``room-lying-2``), or a test scene
+(``test-fall-3``). The pictures are saved upright, the way the model sees them.
 """
 
 import re
@@ -59,6 +59,7 @@ class Capture:
         self._lock = threading.Lock()
         self._clip: str | None = None
         self._saved = 0
+        return None
 
     @property
     def clip(self) -> str | None:

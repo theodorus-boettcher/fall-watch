@@ -23,7 +23,6 @@ DEFAULT_BATCH = 32
 OPTIMIZER = "AdamW"
 LEARNING_RATE = 0.001667
 MOMENTUM = 0.9
-SPLIT_KEYS = {"val": "val", "test": "test"}  # our split name -> data.yaml key
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 ROOM_PREFIX = "room-"  # our room's pictures, named after their capture clip by door_counter.fall_data
 
@@ -126,7 +125,7 @@ def count_images(*, data_yaml: Path, split: str) -> int:
     """
     with data_yaml.open(encoding="utf-8") as f:
         spec = yaml.safe_load(f)
-    folders = spec[SPLIT_KEYS[split]]
+    folders = spec[split]
     folders = folders if isinstance(folders, list) else [folders]
     root = Path(spec.get("path") or data_yaml.parent)  # no path: the yaml's own folder, as Ultralytics does
     return sum(1 for folder in folders for p in (root / folder).iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
@@ -183,7 +182,7 @@ def main() -> None:
     """Train, score on val and test, export for the phone, and save the scores as JSON."""
     parser = argparse.ArgumentParser(description="Train and export the phone model.")
     parser.add_argument("--data", type=Path, required=True, help="Ultralytics data.yaml")
-    parser.add_argument("--name", required=True, help="run and model name, e.g. v1")
+    parser.add_argument("--name", required=True, help="run and model name, e.g. fall-v3")
     parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
     parser.add_argument("--batch", type=int, default=DEFAULT_BATCH)
     parser.add_argument("--imgsz", type=int, default=DEFAULT_IMAGE_SIZE_PX)

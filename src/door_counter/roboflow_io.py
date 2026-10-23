@@ -3,8 +3,8 @@
 The key (the account's private API key) lives in the repo's git-ignored ``.env`` as ``ROBOFLOW_API_KEY=...``
 and is never printed. The workspace is the one the key belongs to.
 Run ``uv run python -m door_counter.roboflow_io`` to create (or find) the keypoint project,
-``... --upload data/fall-coco --batch caucafall`` to upload a dataset in COCO keypoint layout (see
-``door_counter.fall_data``), and ``... --export data/fall-v1`` to make a version and download it.
+``... --upload data/fall-v1 --batch caucafall`` to upload a dataset in COCO keypoint layout (see
+``door_counter.fall_data``), and ``... --export data/rf-fall-v1`` to make a version and download it.
 
 Auto Label does not do keypoint projects, so the room pictures the pose teacher missed get their boxes from
 SAM 3 in a second, box-only project (``BOX_PROJECT_ID``). The whole room flow:
