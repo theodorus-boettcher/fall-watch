@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Reboot the phone, let it settle, then take 3 RAM readings one minute apart.
 # Usage: [STOP_APP=1] measure_ram.sh <label>   (writes measurements/ram-<label>.txt)
-# STOP_APP=1 stops our reader app right after boot, to measure the phone without it.
+# STOP_APP=1 stops the app right after boot, to measure the phone without it.
 set -euo pipefail
+[ $# -eq 1 ] || { echo "usage: [STOP_APP=1] measure_ram.sh <label>" >&2; exit 2; }
 label="$1"
 out="$(cd "$(dirname "$0")/.." && pwd)/measurements/ram-${label}.txt"
 

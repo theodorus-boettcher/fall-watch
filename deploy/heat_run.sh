@@ -4,7 +4,9 @@
 # Usage: heat_run.sh <label> <seconds> <motion_gate true|false>   (writes measurements/heat-<label>.csv)
 # Needs the gateway running on the laptop: at GATEWAY_URL, or over USB after adb reverse tcp:8000 tcp:8000.
 # With the phone on both USB and Wi-Fi adb, pick one with ANDROID_SERIAL. Preview stays off.
+# At the end the app is force-stopped, which also keeps it from starting on boot until it's started again.
 set -euo pipefail
+[ $# -eq 3 ] || { echo "usage: heat_run.sh <label> <seconds> <motion_gate true|false>" >&2; exit 2; }
 label="$1"; duration_s="$2"; motion_gate="$3"
 MAX_BATTERY_C="${MAX_BATTERY_C:-45}"
 MIN_BATTERY_PCT="${MIN_BATTERY_PCT:-25}"
@@ -29,7 +31,9 @@ if h:
   [ -z "${row}" ] && continue
   echo "$(( $(date +%s) - start )),${row}" >> "${out}"
   battery_c=$(echo "${row}" | cut -d, -f4); battery_pct=$(echo "${row}" | cut -d, -f5)
-  if python3 -c "import sys; sys.exit(0 if float('${battery_c}') > ${MAX_BATTERY_C} else 1)"; then stop_reason="battery above ${MAX_BATTERY_C} C"; break; fi
+  if awk -v t="${battery_c}" -v max="${MAX_BATTERY_C}" 'BEGIN { exit !(t > max) }'; then
+    stop_reason="battery above ${MAX_BATTERY_C} C"; break
+  fi
   if [ "${battery_pct}" -lt "${MIN_BATTERY_PCT}" ]; then stop_reason="battery below ${MIN_BATTERY_PCT}%"; break; fi
 done
 adb shell am force-stop com.doorcounter.app

@@ -100,7 +100,7 @@ com.samsung.SMT
 com.sec.android.daemonapp
 com.sec.android.widgetapp.ap.hero.accuweather
 
-## Samsung apps nobody needs on a gauge reader
+## Samsung apps nobody needs on a fall watch camera
 com.sec.android.app.shealth
 com.sec.android.service.health
 com.sec.android.app.sns3
