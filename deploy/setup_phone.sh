@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set up any Android phone (6.0 or newer, able to run 32-bit apps) as a fall watch camera, over adb:
 # install the app, grant it the camera, point it at the laptop gateway and start it. Preview stays off.
-# Usage: setup_phone.sh <gateway url, e.g. http://192.168.0.10:8000> [path/to/app.apk]
+# Usage: setup_phone.sh <gateway url, e.g. http://<laptop-ip>:8000> [path/to/app.apk]
 # For a phone that does only this job, provision.sh also makes the app device owner and hides other apps.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
