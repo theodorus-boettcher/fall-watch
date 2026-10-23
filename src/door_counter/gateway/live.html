@@ -63,7 +63,7 @@
       <dt>model time per frame</dt><dd id="inference">-</dd>
       <dt>CPU temperature</dt><dd id="cpu">-</dd>
       <dt>battery</dt><dd id="battery">-</dd>
-      <dt>queued on phone</dt><dd id="queued">-</dd>
+      <dt>waiting on phone</dt><dd id="queued">-</dd>
       <dt>dropped</dt><dd id="dropped">-</dd>
       <dt>model</dt><dd id="model">-</dd>
       <dt>frame</dt><dd id="frame">-</dd>
@@ -79,6 +79,7 @@
 <script>
   const POLL_MS = 150;
   const STALE_S = 3;
+  const LATE_FRAMES = 10;  // about 10 s behind at the motion gate's idle rate
   const MIN_VISIBILITY = 0.5;
   // COCO skeleton: pairs of keypoint indices (0 nose, 5/6 shoulders, 11/12 hips, 15/16 ankles).
   const EDGES = [[5, 7], [7, 9], [6, 8], [8, 10], [5, 6], [5, 11], [6, 12], [11, 12], [11, 13], [13, 15],
@@ -232,7 +233,9 @@
         setText("battery", hl.battery_level_pct + "%, " + hl.battery_temp_c.toFixed(1) + " °C" +
                 (hl.is_charging ? ", charging" : ""), hl.battery_temp_c >= 45 ? "bad" : "");
       }
-      setText("queued", String(s.queued_frames), s.queued_frames > 50 ? "warn" : "");
+      // The phone sends oldest first, so frames waiting there mean the alerts run late too (1 frame ~ 1 s when still).
+      const isBehind = s.queued_frames > LATE_FRAMES;
+      setText("queued", s.queued_frames + (isBehind ? " frames: alerts run late" : ""), isBehind ? "bad" : "");
       setText("dropped", String(s.dropped_frames), s.dropped_frames > 0 ? "bad" : "");
       if (s.capture) {
         setText("capture", s.capture.clip ? s.capture.clip + ", " + s.capture.saved + " pictures" : "off",
