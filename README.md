@@ -83,8 +83,8 @@ Any Android phone from 6.0 up that can run 32-bit ARM apps should work. Only the
 tested. On the phone, turn on USB debugging. Then, with the phone on USB:
 
 ```bash
-# app-release.apk from the GitHub release, or your own build
-deploy/setup_phone.sh http://<laptop-ip>:8000 path/to/app-release.apk
+# fall-watch-1.1.apk from the GitHub release, or your own build
+deploy/setup_phone.sh http://<laptop-ip>:8000 path/to/fall-watch-1.1.apk
 ```
 
 This installs the app, gives it the camera, points it at the gateway and starts it, with the preview off.
